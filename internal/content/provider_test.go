@@ -56,7 +56,7 @@ func TestContentProvider_LoadMarkdownWithFrontmatter(t *testing.T) {
 	if err != nil {
 		t.Fatalf("LoadMarkdownWithFrontmatter failed: %v", err)
 	}
-	
+
 	if md.Metadata["name"] != "Test" {
 		t.Errorf("Expected metadata name 'Test', got '%v'", md.Metadata["name"])
 	}

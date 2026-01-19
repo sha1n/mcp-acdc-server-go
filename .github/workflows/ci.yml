@@ -24,10 +24,10 @@ jobs:
       run: make install
 
     - name: Install golangci-lint
-      run: go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+      run: curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s -- -b $(go env GOPATH)/bin v1.63.4
 
-    - name: Run golangci-lint
-      run: $(go env GOPATH)/bin/golangci-lint run
+    - name: Run linting and format checks
+      run: make lint
 
     - name: Run tests
       run: make test

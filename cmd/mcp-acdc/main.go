@@ -63,17 +63,17 @@ func run() error {
 
 	// Load metadata
 	metadataPath := cp.GetPath("mcp-metadata.yaml")
-	
+
 	mdBytes, err := os.ReadFile(metadataPath)
 	if err != nil {
 		return fmt.Errorf("failed to read metadata file: %w", err)
 	}
-	
+
 	var metadata domain.McpMetadata
 	if err := yaml.Unmarshal(mdBytes, &metadata); err != nil {
 		return fmt.Errorf("failed to parse metadata: %w", err)
 	}
-	
+
 	if err := metadata.Validate(); err != nil {
 		return fmt.Errorf("metadata validation failed: %w", err)
 	}
@@ -83,7 +83,7 @@ func run() error {
 	if err != nil {
 		return fmt.Errorf("failed to discover resources: %w", err)
 	}
-	
+
 	resourceProvider := resources.NewResourceProvider(resourceDefinitions)
 
 	// Initialize search service
@@ -103,7 +103,7 @@ func run() error {
 				Content: d["content"],
 			})
 		}
-		
+
 		if err := searchService.IndexDocuments(docs); err != nil {
 			slog.Error("Failed to index documents", "error", err)
 		} else {

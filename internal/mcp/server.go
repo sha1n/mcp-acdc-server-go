@@ -26,8 +26,8 @@ func CreateServer(
 	// Register Resources
 	for _, res := range resourceProvider.ListResources() {
 		// Capture uri for closure
-		uri := res.URI 
-		
+		uri := res.URI
+
 		s.AddResource(mcp.Resource{
 			URI:         uri,
 			Name:        res.Name,
@@ -47,7 +47,7 @@ func CreateServer(
 			}, nil
 		})
 	}
-	
+
 	// Register Tools
 	toolsMap, _ := metadata.ToolsMap()
 	if toolMeta, ok := toolsMap["search"]; ok {

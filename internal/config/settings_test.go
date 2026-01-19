@@ -6,9 +6,9 @@ import (
 )
 
 func TestLoadSettings_Defaults(t *testing.T) {
-	os.Unsetenv("ACDC_MCP_HOST")
-	os.Unsetenv("ACDC_MCP_SEARCH_MAX_RESULTS")
-	
+	_ = os.Unsetenv("ACDC_MCP_HOST")
+	_ = os.Unsetenv("ACDC_MCP_SEARCH_MAX_RESULTS")
+
 	settings, err := LoadSettings()
 	if err != nil {
 		t.Fatalf("LoadSettings failed: %v", err)
@@ -23,10 +23,10 @@ func TestLoadSettings_Defaults(t *testing.T) {
 }
 
 func TestLoadSettings_EnvVars(t *testing.T) {
-	os.Setenv("ACDC_MCP_HOST", "127.0.0.1")
-	os.Setenv("ACDC_MCP_SEARCH_MAX_RESULTS", "50")
-	defer os.Unsetenv("ACDC_MCP_HOST")
-	defer os.Unsetenv("ACDC_MCP_SEARCH_MAX_RESULTS")
+	_ = os.Setenv("ACDC_MCP_HOST", "127.0.0.1")
+	_ = os.Setenv("ACDC_MCP_SEARCH_MAX_RESULTS", "50")
+	defer func() { _ = os.Unsetenv("ACDC_MCP_HOST") }()
+	defer func() { _ = os.Unsetenv("ACDC_MCP_SEARCH_MAX_RESULTS") }()
 
 	settings, err := LoadSettings()
 	if err != nil {

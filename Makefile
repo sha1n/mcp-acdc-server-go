@@ -14,7 +14,7 @@ GOBASE := $(shell pwd)
 GOBIN := $(GOBASE)/bin
 GODIST := $(GOBASE)/dist
 GOBUILD := $(GOBASE)/build
-GOFILES := $(shell find . -type f -name '*.go' -not -path './vendor/*')
+GOFILES := $(shell find . -type f -name '*.go' -not -path './vendor/*' -not -path './build/*')
 GOOS_DARWIN := "darwin"
 GOOS_LINUX := "linux"
 GOOS_WINDOWS := "windows"
@@ -47,9 +47,9 @@ install: go-get
 .PHONY: format
 format: go-format
 
-## lint: Runs all linters including go vet and golangci-lint
+## lint: Runs all linters including go vet, golangci-lint and format check
 .PHONY: lint
-lint: go-lint golangci-lint
+lint: go-lint golangci-lint go-format-check
 
 ## build: Builds binaries for all supported platforms
 .PHONY: build
@@ -89,6 +89,15 @@ golangci-lint:
 go-format:
 	@echo "  >  Formating source files..."
 	gofmt -s -w $(GOFILES)
+
+.PHONY: go-format-check
+go-format-check:
+	@echo "  >  Checking formatting of source files..."
+	@if [ -n "$$(gofmt -l $(GOFILES))" ]; then \
+		echo "  >  Format check failed for the following files:"; \
+		gofmt -l $(GOFILES); \
+		exit 1; \
+	fi
 
 .PHONY: go-build-current
 go-build-current:
