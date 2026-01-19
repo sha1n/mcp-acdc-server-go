@@ -21,7 +21,12 @@ jobs:
     - name: Install dependencies
       run: make install
 
-    - name: Run verification
-      run: make lint test
+    - name: golangci-lint
+      uses: golangci/golangci-lint-action@v6
+      with:
+        version: latest
+
+    - name: Run tests
+      run: make test
       env:
         CI: true
