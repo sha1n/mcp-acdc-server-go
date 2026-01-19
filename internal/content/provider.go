@@ -78,7 +78,7 @@ func (p *ContentProvider) LoadMarkdownWithFrontmatter(filePath string) (*Markdow
 	}
 
 	// Adjust index to be relative to start of string
-	realEndIndex := endIndex + 4 
+	realEndIndex := endIndex + 4
 
 	frontmatterText := content[4:realEndIndex]
 	markdownContent := content[realEndIndex+5:] // Skip "\n---\n" (length 5)

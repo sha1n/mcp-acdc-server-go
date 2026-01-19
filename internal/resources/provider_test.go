@@ -65,7 +65,7 @@ func TestResourceProvider_ReadResource(t *testing.T) {
 	}
 
 	p := NewResourceProvider(defs)
-	
+
 	// Test Read
 	content, err := p.ReadResource("acdc://test")
 	if err != nil {

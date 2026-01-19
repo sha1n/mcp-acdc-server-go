@@ -41,11 +41,11 @@ func NewService(settings config.SearchSettings) *Service {
 func (s *Service) IndexDocuments(documents []Document) error {
 	// Close existing index if any
 	if s.index != nil {
-		s.index.Close()
+		_ = s.index.Close()
 		s.index = nil
 	}
 	if s.indexDir != "" {
-		os.RemoveAll(s.indexDir)
+		_ = os.RemoveAll(s.indexDir)
 	}
 
 	// Create temp dir
@@ -132,11 +132,11 @@ func (s *Service) Search(queryStr string, limit *int) ([]SearchResult, error) {
 	// Python uses parse_query with default fields ["name", "content"]
 	// Bleve's QueryStringQuery is similar
 	query := bleve.NewQueryStringQuery(queryStr)
-	
+
 	searchRequest := bleve.NewSearchRequest(query)
 	searchRequest.Size = maxResults
 	searchRequest.Fields = []string{"uri", "name"} // Fields to retrieve
-	
+
 	searchResult, err := s.index.Search(searchRequest)
 	if err != nil {
 		return nil, fmt.Errorf("search failed: %w", err)
@@ -167,9 +167,9 @@ func (s *Service) Search(queryStr string, limit *int) ([]SearchResult, error) {
 // Close cleans up resources
 func (s *Service) Close() {
 	if s.index != nil {
-		s.index.Close()
+		_ = s.index.Close()
 	}
 	if s.indexDir != "" {
-		os.RemoveAll(s.indexDir)
+		_ = os.RemoveAll(s.indexDir)
 	}
 }

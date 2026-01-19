@@ -101,7 +101,7 @@ func DiscoverResources(cp *content.ContentProvider) ([]ResourceDefinition, error
 		// Extract metadata
 		name, _ := md.Metadata["name"].(string)
 		description, _ := md.Metadata["description"].(string)
-		
+
 		if name == "" || description == "" {
 			slog.Warn("Skipping resource with missing metadata", "file", d.Name())
 			return nil
@@ -112,7 +112,7 @@ func DiscoverResources(cp *content.ContentProvider) ([]ResourceDefinition, error
 		if err != nil {
 			return err
 		}
-		
+
 		relPathNoExt := strings.TrimSuffix(relPath, filepath.Ext(relPath))
 		// normalized for URI (slashes)
 		uriPath := filepath.ToSlash(relPathNoExt)
@@ -125,7 +125,7 @@ func DiscoverResources(cp *content.ContentProvider) ([]ResourceDefinition, error
 			MIMEType:    "text/markdown",
 			FilePath:    path,
 		})
-		
+
 		slog.Info("Loaded resource", "uri", uri, "name", name)
 
 		return nil

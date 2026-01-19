@@ -19,8 +19,8 @@ type ToolMetadata struct {
 
 // McpMetadata represents the root of mcp-metadata.yaml
 type McpMetadata struct {
-	Server ServerMetadata  `yaml:"server"`
-	Tools  []ToolMetadata  `yaml:"tools"`
+	Server ServerMetadata `yaml:"server"`
+	Tools  []ToolMetadata `yaml:"tools"`
 }
 
 // ToolsMap returns tools as a map for easy lookup
@@ -55,7 +55,7 @@ func (m *McpMetadata) Validate() error {
 			return fmt.Errorf("tool at index %d missing description", i)
 		}
 	}
-	
+
 	if _, err := m.ToolsMap(); err != nil {
 		return err
 	}

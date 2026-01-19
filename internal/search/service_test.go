@@ -43,7 +43,7 @@ func TestSearchService(t *testing.T) {
 	if results[0].URI != "acdc://doc1" {
 		t.Errorf("Expected URI 'acdc://doc1', got '%s'", results[0].URI)
 	}
-	
+
 	// Search for "document"
 	results, err = service.Search("document", nil)
 	if err != nil {

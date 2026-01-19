@@ -29,7 +29,7 @@ func RegisterSearchTool(s *server.MCPServer, searchService *search.Service, meta
 		if !ok {
 			return nil, fmt.Errorf("invalid arguments format")
 		}
-		
+
 		query, ok := args["query"].(string)
 		if !ok {
 			return nil, fmt.Errorf("missing 'query' argument")
