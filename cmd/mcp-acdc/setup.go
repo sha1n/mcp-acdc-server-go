@@ -30,11 +30,6 @@ func StartSSEServer(s *server.MCPServer, settings *config.Settings) error {
 
 	addr := fmt.Sprintf("%s:%d", settings.Host, settings.Port)
 
-	if settings.CertFile != "" && settings.KeyFile != "" {
-		slog.Info("Server listening (HTTPS)", "addr", addr, "auth_type", settings.Auth.Type)
-		return http.ListenAndServeTLS(addr, settings.CertFile, settings.KeyFile, handler)
-	}
-
 	slog.Info("Server listening (HTTP)", "addr", addr, "auth_type", settings.Auth.Type)
 	return http.ListenAndServe(addr, handler)
 }

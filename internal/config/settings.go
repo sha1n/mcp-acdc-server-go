@@ -41,8 +41,6 @@ type Settings struct {
 	Transport  string         `mapstructure:"transport"`
 	Host       string         `mapstructure:"host"`
 	Port       int            `mapstructure:"port"`
-	CertFile   string         `mapstructure:"cert_file"`
-	KeyFile    string         `mapstructure:"key_file"`
 	Search     SearchSettings `mapstructure:"search"`
 	Auth       AuthSettings   `mapstructure:"auth"`
 }
@@ -67,9 +65,6 @@ func LoadSettings() (*Settings, error) {
 	v.SetEnvPrefix("ACDC_MCP")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
-
-	_ = v.BindEnv("cert_file", "ACDC_MCP_CERT_FILE")
-	_ = v.BindEnv("key_file", "ACDC_MCP_KEY_FILE")
 
 	// Bind specific env vars for nested config
 	_ = v.BindEnv("search.max_results", "ACDC_MCP_SEARCH_MAX_RESULTS")
