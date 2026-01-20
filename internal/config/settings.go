@@ -15,9 +15,16 @@ type SearchSettings struct {
 	InMemory   bool `mapstructure:"in_memory"`
 }
 
+// Auth type constants
+const (
+	AuthTypeNone   = "none"
+	AuthTypeBasic  = "basic"
+	AuthTypeAPIKey = "apikey"
+)
+
 // AuthSettings configuration for authentication
 type AuthSettings struct {
-	Type    string            `mapstructure:"type"` // "none", "basic", "apikey"
+	Type    string            `mapstructure:"type"` // AuthTypeNone, AuthTypeBasic, or AuthTypeAPIKey
 	Basic   BasicAuthSettings `mapstructure:"basic"`
 	APIKeys []string          `mapstructure:"api_keys"`
 }
@@ -52,7 +59,7 @@ func LoadSettings() (*Settings, error) {
 	v.SetDefault("port", 8000)
 	v.SetDefault("search.max_results", 10)
 	v.SetDefault("search.heap_size_mb", 50)
-	v.SetDefault("auth.type", "none")
+	v.SetDefault("auth.type", AuthTypeNone)
 
 	// Environment variables
 	v.SetEnvPrefix("ACDC_MCP")

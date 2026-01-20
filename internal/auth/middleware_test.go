@@ -90,7 +90,7 @@ func TestAPIKeyAuth(t *testing.T) {
 
 func TestNewMiddleware(t *testing.T) {
 	// Test None
-	mw, err := NewMiddleware(config.AuthSettings{Type: "none"})
+	mw, err := NewMiddleware(config.AuthSettings{Type: config.AuthTypeNone})
 	if err != nil {
 		t.Fatalf("Unexpected error: %v", err)
 	}
@@ -106,7 +106,7 @@ func TestNewMiddleware(t *testing.T) {
 
 	// Test Basic
 	mw, err = NewMiddleware(config.AuthSettings{
-		Type: "basic",
+		Type: config.AuthTypeBasic,
 		Basic: config.BasicAuthSettings{
 			Username: "u",
 			Password: "p",
@@ -125,7 +125,7 @@ func TestNewMiddleware(t *testing.T) {
 
 	// Test Basic with empty username
 	_, err = NewMiddleware(config.AuthSettings{
-		Type: "basic",
+		Type: config.AuthTypeBasic,
 		Basic: config.BasicAuthSettings{
 			Username: "",
 			Password: "p",
@@ -137,7 +137,7 @@ func TestNewMiddleware(t *testing.T) {
 
 	// Test Basic with empty password
 	_, err = NewMiddleware(config.AuthSettings{
-		Type: "basic",
+		Type: config.AuthTypeBasic,
 		Basic: config.BasicAuthSettings{
 			Username: "u",
 			Password: "",
@@ -149,7 +149,7 @@ func TestNewMiddleware(t *testing.T) {
 
 	// Test APIKey with empty list
 	_, err = NewMiddleware(config.AuthSettings{
-		Type:    "apikey",
+		Type:    config.AuthTypeAPIKey,
 		APIKeys: []string{},
 	})
 	if err == nil {
@@ -166,7 +166,7 @@ func TestNewMiddleware(t *testing.T) {
 func TestPathExclusions(t *testing.T) {
 	// Create a basic auth middleware that requires auth
 	mw, err := NewMiddleware(config.AuthSettings{
-		Type: "basic",
+		Type: config.AuthTypeBasic,
 		Basic: config.BasicAuthSettings{
 			Username: "user",
 			Password: "pass",

@@ -38,7 +38,7 @@ func TestAuthIntegration(t *testing.T) {
 		Host: "localhost",
 		Port: port,
 		Auth: config.AuthSettings{
-			Type:    "apikey",
+			Type:    config.AuthTypeAPIKey,
 			APIKeys: []string{"key-A", "key-B"},
 		},
 	}
@@ -115,7 +115,7 @@ func TestBasicAuthIntegration(t *testing.T) {
 		Host: "localhost",
 		Port: port,
 		Auth: config.AuthSettings{
-			Type: "basic",
+			Type: config.AuthTypeBasic,
 			Basic: config.BasicAuthSettings{
 				Username: "user",
 				Password: "password",

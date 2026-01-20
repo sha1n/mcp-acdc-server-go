@@ -22,16 +22,16 @@ func isExcludedPath(path string) bool {
 // NewMiddleware creates a new authentication middleware based on settings
 func NewMiddleware(settings config.AuthSettings) (func(http.Handler) http.Handler, error) {
 	switch settings.Type {
-	case "none", "":
+	case config.AuthTypeNone, "":
 		return func(next http.Handler) http.Handler {
 			return next
 		}, nil
-	case "basic":
+	case config.AuthTypeBasic:
 		if settings.Basic.Username == "" || settings.Basic.Password == "" {
 			return nil, fmt.Errorf("basic auth requires non-empty username and password")
 		}
 		return withExclusions(basicAuthMiddleware(settings.Basic)), nil
-	case "apikey":
+	case config.AuthTypeAPIKey:
 		if len(settings.APIKeys) == 0 {
 			return nil, fmt.Errorf("apikey auth requires at least one API key")
 		}

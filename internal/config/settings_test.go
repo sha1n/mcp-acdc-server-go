@@ -18,8 +18,8 @@ func TestLoadSettings_Defaults(t *testing.T) {
 	if settings.Port != 8000 {
 		t.Errorf("Expected default port 8000, got %d", settings.Port)
 	}
-	if settings.Auth.Type != "none" {
-		t.Errorf("Expected default auth type 'none', got '%s'", settings.Auth.Type)
+	if settings.Auth.Type != AuthTypeNone {
+		t.Errorf("Expected default auth type '%s', got '%s'", AuthTypeNone, settings.Auth.Type)
 	}
 }
 
@@ -47,8 +47,8 @@ func TestLoadSettings_EnvVars(t *testing.T) {
 	if settings.Port != 9090 {
 		t.Errorf("Expected port 9090, got %d", settings.Port)
 	}
-	if settings.Auth.Type != "basic" {
-		t.Errorf("Expected auth type 'basic', got '%s'", settings.Auth.Type)
+	if settings.Auth.Type != AuthTypeBasic {
+		t.Errorf("Expected auth type '%s', got '%s'", AuthTypeBasic, settings.Auth.Type)
 	}
 	if settings.Auth.Basic.Username != "admin" {
 		t.Errorf("Expected username 'admin', got '%s'", settings.Auth.Basic.Username)
