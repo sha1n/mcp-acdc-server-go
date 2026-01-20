@@ -147,6 +147,34 @@ func TestNewMiddleware(t *testing.T) {
 		t.Error("Expected error for basic auth with empty password")
 	}
 
+	// Test APIKey with valid keys
+	mw, err = NewMiddleware(config.AuthSettings{
+		Type:    config.AuthTypeAPIKey,
+		APIKeys: []string{"valid-key"},
+	})
+	if err != nil {
+		t.Fatalf("Unexpected error: %v", err)
+	}
+	// Verify it requires auth
+	req = httptest.NewRequest("GET", "/api/test", nil)
+	w = httptest.NewRecorder()
+	mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})).ServeHTTP(w, req)
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("Expected status 401 for apikey auth without key, got %d", w.Code)
+	}
+	// Verify valid key works
+	req = httptest.NewRequest("GET", "/api/test", nil)
+	req.Header.Set("X-API-Key", "valid-key")
+	w = httptest.NewRecorder()
+	mw(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	})).ServeHTTP(w, req)
+	if w.Code != http.StatusOK {
+		t.Errorf("Expected status 200 for apikey auth with valid key, got %d", w.Code)
+	}
+
 	// Test APIKey with empty list
 	_, err = NewMiddleware(config.AuthSettings{
 		Type:    config.AuthTypeAPIKey,

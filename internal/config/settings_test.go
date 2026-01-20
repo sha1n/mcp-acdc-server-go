@@ -7,6 +7,7 @@ import (
 
 func TestLoadSettings_Defaults(t *testing.T) {
 	// Clear env vars to ensure defaults are used
+	// Note: Can't use t.Setenv to clear, so we still need os.Unsetenv here
 	_ = os.Unsetenv("ACDC_MCP_PORT")
 	_ = os.Unsetenv("ACDC_MCP_AUTH_TYPE")
 
@@ -24,20 +25,9 @@ func TestLoadSettings_Defaults(t *testing.T) {
 }
 
 func TestLoadSettings_EnvVars(t *testing.T) {
-	if err := os.Setenv("ACDC_MCP_PORT", "9090"); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Setenv("ACDC_MCP_AUTH_TYPE", "basic"); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.Setenv("ACDC_MCP_AUTH_BASIC_USERNAME", "admin"); err != nil {
-		t.Fatal(err)
-	}
-	defer func() {
-		_ = os.Unsetenv("ACDC_MCP_PORT")
-		_ = os.Unsetenv("ACDC_MCP_AUTH_TYPE")
-		_ = os.Unsetenv("ACDC_MCP_AUTH_BASIC_USERNAME")
-	}()
+	t.Setenv("ACDC_MCP_PORT", "9090")
+	t.Setenv("ACDC_MCP_AUTH_TYPE", "basic")
+	t.Setenv("ACDC_MCP_AUTH_BASIC_USERNAME", "admin")
 
 	settings, err := LoadSettings()
 	if err != nil {
@@ -57,10 +47,7 @@ func TestLoadSettings_EnvVars(t *testing.T) {
 
 func TestLoadSettings_APIKeys_EnvVar(t *testing.T) {
 	// Test the manual splitting logic
-	if err := os.Setenv("ACDC_MCP_AUTH_API_KEYS", "key1, key2,key3"); err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = os.Unsetenv("ACDC_MCP_AUTH_API_KEYS") }()
+	t.Setenv("ACDC_MCP_AUTH_API_KEYS", "key1, key2,key3")
 
 	settings, err := LoadSettings()
 	if err != nil {
@@ -83,10 +70,7 @@ func TestLoadSettings_APIKeys_EnvVar(t *testing.T) {
 
 func TestLoadSettings_APIKeys_EnvVar_ViperSingleElement(t *testing.T) {
 	// If we set a single key, it should work too
-	if err := os.Setenv("ACDC_MCP_AUTH_API_KEYS", "singlekey"); err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = os.Unsetenv("ACDC_MCP_AUTH_API_KEYS") }()
+	t.Setenv("ACDC_MCP_AUTH_API_KEYS", "singlekey")
 
 	settings, err := LoadSettings()
 	if err != nil {
@@ -126,10 +110,7 @@ func TestLoadSettings_EnvFile(t *testing.T) {
 
 func TestLoadSettings_InvalidConfig(t *testing.T) {
 	// Create invalid env var type (Port expects int)
-	if err := os.Setenv("ACDC_MCP_PORT", "not-a-number"); err != nil {
-		t.Fatal(err)
-	}
-	defer func() { _ = os.Unsetenv("ACDC_MCP_PORT") }()
+	t.Setenv("ACDC_MCP_PORT", "not-a-number")
 
 	_, err := LoadSettings()
 	if err == nil {
