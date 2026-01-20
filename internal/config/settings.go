@@ -87,10 +87,12 @@ func LoadSettings() (*Settings, error) {
 		// If the struct is empty OR looks like a failed split (1 element with commas)
 		if len(settings.Auth.APIKeys) == 0 || (len(settings.Auth.APIKeys) == 1 && strings.Contains(settings.Auth.APIKeys[0], ",")) {
 			settings.Auth.APIKeys = strings.Split(apiKeysEnv, ",")
-			for i := range settings.Auth.APIKeys {
-				settings.Auth.APIKeys[i] = strings.TrimSpace(settings.Auth.APIKeys[i])
-			}
 		}
+	}
+
+	// Always trim spaces from API keys (Viper might leave spaces after commas)
+	for i := range settings.Auth.APIKeys {
+		settings.Auth.APIKeys[i] = strings.TrimSpace(settings.Auth.APIKeys[i])
 	}
 
 	return &settings, nil
