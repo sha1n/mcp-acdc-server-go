@@ -171,7 +171,7 @@ func (s *Service) Search(queryStr string, limit *int) ([]SearchResult, error) {
 		}
 
 		name, ok := hit.Fields["name"].(string)
-		if !ok {
+		if !ok || name == "" {
 			name = "Unknown" // Fallback
 		}
 
