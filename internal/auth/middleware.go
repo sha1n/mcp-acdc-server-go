@@ -16,6 +16,9 @@ func NewMiddleware(settings config.AuthSettings) (func(http.Handler) http.Handle
 			return next
 		}, nil
 	case "basic":
+		if settings.Basic.Username == "" || settings.Basic.Password == "" {
+			return nil, fmt.Errorf("basic auth requires non-empty username and password")
+		}
 		return basicAuthMiddleware(settings.Basic), nil
 	case "apikey":
 		return apiKeyMiddleware(settings.APIKeys), nil

@@ -123,6 +123,30 @@ func TestNewMiddleware(t *testing.T) {
 		t.Errorf("Expected status 401 for basic auth without creds")
 	}
 
+	// Test Basic with empty username
+	_, err = NewMiddleware(config.AuthSettings{
+		Type: "basic",
+		Basic: config.BasicAuthSettings{
+			Username: "",
+			Password: "p",
+		},
+	})
+	if err == nil {
+		t.Error("Expected error for basic auth with empty username")
+	}
+
+	// Test Basic with empty password
+	_, err = NewMiddleware(config.AuthSettings{
+		Type: "basic",
+		Basic: config.BasicAuthSettings{
+			Username: "u",
+			Password: "",
+		},
+	})
+	if err == nil {
+		t.Error("Expected error for basic auth with empty password")
+	}
+
 	// Test Unknown
 	_, err = NewMiddleware(config.AuthSettings{Type: "unknown"})
 	if err == nil {
