@@ -21,6 +21,9 @@ func NewMiddleware(settings config.AuthSettings) (func(http.Handler) http.Handle
 		}
 		return basicAuthMiddleware(settings.Basic), nil
 	case "apikey":
+		if len(settings.APIKeys) == 0 {
+			return nil, fmt.Errorf("apikey auth requires at least one API key")
+		}
 		return apiKeyMiddleware(settings.APIKeys), nil
 	default:
 		return nil, fmt.Errorf("unknown auth type: %s", settings.Type)

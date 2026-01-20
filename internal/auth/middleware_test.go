@@ -147,6 +147,15 @@ func TestNewMiddleware(t *testing.T) {
 		t.Error("Expected error for basic auth with empty password")
 	}
 
+	// Test APIKey with empty list
+	_, err = NewMiddleware(config.AuthSettings{
+		Type:    "apikey",
+		APIKeys: []string{},
+	})
+	if err == nil {
+		t.Error("Expected error for apikey auth with empty list")
+	}
+
 	// Test Unknown
 	_, err = NewMiddleware(config.AuthSettings{Type: "unknown"})
 	if err == nil {
