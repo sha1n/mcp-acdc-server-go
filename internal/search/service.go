@@ -89,15 +89,24 @@ func (s *Service) IndexDocuments(documents []Document) error {
 	s.index = index
 
 	// Batch index
-	batch := index.NewBatch()
-	for _, doc := range documents {
-		if err := batch.Index(doc.URI, doc); err != nil {
-			return fmt.Errorf("failed to add document to batch: %w", err)
+	const batchSize = 100
+	totalDocs := len(documents)
+	for i := 0; i < totalDocs; i += batchSize {
+		end := i + batchSize
+		if end > totalDocs {
+			end = totalDocs
 		}
-	}
 
-	if err := index.Batch(batch); err != nil {
-		return fmt.Errorf("failed to execute batch index: %w", err)
+		batch := index.NewBatch()
+		for _, doc := range documents[i:end] {
+			if err := batch.Index(doc.URI, doc); err != nil {
+				return fmt.Errorf("failed to add document to batch: %w", err)
+			}
+		}
+
+		if err := index.Batch(batch); err != nil {
+			return fmt.Errorf("failed to execute batch index: %w", err)
+		}
 	}
 
 	return nil

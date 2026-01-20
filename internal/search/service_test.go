@@ -1,6 +1,7 @@
 package search
 
 import (
+	"fmt"
 	"os"
 	"testing"
 
@@ -195,5 +196,46 @@ func TestSearchService_Extended(t *testing.T) {
 	expectedSnippetPrefix := "Alpha (relevance:"
 	if len(r.Snippet) < len(expectedSnippetPrefix) || r.Snippet[:len(expectedSnippetPrefix)] != expectedSnippetPrefix {
 		t.Errorf("Snippet '%s' does not start with expected prefix '%s'", r.Snippet, expectedSnippetPrefix)
+	}
+}
+
+func TestSearchService_BatchIndexing(t *testing.T) {
+	service := NewService(config.SearchSettings{InMemory: true})
+	defer service.Close()
+
+	// Create a large number of documents to force multiple batches
+	const numDocs = 250 // More than batchSize=100
+	docs := make([]Document, numDocs)
+	for i := 0; i < numDocs; i++ {
+		docs[i] = Document{
+			URI:     fmt.Sprintf("acdc://doc%d", i),
+			Name:    fmt.Sprintf("Document %d", i),
+			Content: "This is a test document.",
+		}
+	}
+
+	if err := service.IndexDocuments(docs); err != nil {
+		t.Fatalf("IndexDocuments with batching failed: %v", err)
+	}
+
+	// Verify all documents were indexed
+	count, err := service.DocCount()
+	if err != nil {
+		t.Fatalf("DocCount failed: %v", err)
+	}
+	if count != numDocs {
+		t.Errorf("Expected %d documents to be indexed, but got %d", numDocs, count)
+	}
+
+	// Spot-check a document from the last batch
+	results, err := service.Search("Document 249", nil)
+	if err != nil {
+		t.Fatalf("Search failed: %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("Expected 1 result for 'Document 249', got %d", len(results))
+	}
+	if results[0].URI != "acdc://doc249" {
+		t.Errorf("Expected URI 'acdc://doc249', got '%s'", results[0].URI)
 	}
 }
