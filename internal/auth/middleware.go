@@ -59,7 +59,9 @@ func basicAuthMiddleware(settings config.BasicAuthSettings) func(http.Handler) h
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			user, pass, ok := r.BasicAuth()
-			if !ok || subtle.ConstantTimeCompare([]byte(user), []byte(settings.Username)) != 1 || subtle.ConstantTimeCompare([]byte(pass), []byte(settings.Password)) != 1 {
+			userMatch := subtle.ConstantTimeCompare([]byte(user), []byte(settings.Username)) == 1
+			passMatch := subtle.ConstantTimeCompare([]byte(pass), []byte(settings.Password)) == 1
+			if !ok || !userMatch || !passMatch {
 				w.Header().Set("WWW-Authenticate", `Basic realm="Restricted"`)
 				http.Error(w, "Unauthorized", http.StatusUnauthorized)
 				return
