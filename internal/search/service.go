@@ -20,9 +20,10 @@ type SearchResult struct {
 
 // Document represents a document to index
 type Document struct {
-	URI     string `json:"uri"`
-	Name    string `json:"name"`
-	Content string `json:"content"`
+	URI      string   `json:"uri"`
+	Name     string   `json:"name"`
+	Content  string   `json:"content"`
+	Keywords []string `json:"keywords,omitempty"`
 }
 
 // Searcher interface in search package
@@ -122,10 +123,18 @@ func buildMapping() mapping.IndexMapping {
 	contentMapping.IncludeInAll = true
 	contentMapping.Analyzer = "standard"
 
+	// Keywords field: Indexed, Not Stored, Included in All
+	// Boosting is done at query-time via DisjunctionQuery
+	keywordsMapping := bleve.NewTextFieldMapping()
+	keywordsMapping.Store = false
+	keywordsMapping.IncludeInAll = true
+	keywordsMapping.Analyzer = "standard"
+
 	docMapping := bleve.NewDocumentMapping()
 	docMapping.AddFieldMappingsAt("uri", uriMapping)
 	docMapping.AddFieldMappingsAt("name", nameMapping)
 	docMapping.AddFieldMappingsAt("content", contentMapping)
+	docMapping.AddFieldMappingsAt("keywords", keywordsMapping)
 
 	mapping := bleve.NewIndexMapping()
 	mapping.DefaultMapping = docMapping
@@ -143,17 +152,28 @@ func (s *Service) Search(queryStr string, limit *int) ([]SearchResult, error) {
 		maxResults = *limit
 	}
 
-	// Match query (searches across all fields included in 'all')
-	// Python uses parse_query with default fields ["name", "content"]
-	// Bleve's QueryStringQuery is similar
-	var query query.Query
+	// Build query with keyword boosting
+	// Use DisjunctionQuery to search multiple fields with different boosts
+	var q query.Query
 	if queryStr == "*" {
-		query = bleve.NewMatchAllQuery()
+		q = bleve.NewMatchAllQuery()
 	} else {
-		query = bleve.NewQueryStringQuery(queryStr)
+		// Create field-specific queries with boosting
+		nameQuery := bleve.NewMatchQuery(queryStr)
+		nameQuery.SetField("name")
+
+		contentQuery := bleve.NewMatchQuery(queryStr)
+		contentQuery.SetField("content")
+
+		keywordsQuery := bleve.NewMatchQuery(queryStr)
+		keywordsQuery.SetField("keywords")
+		keywordsQuery.SetBoost(2.0) // Boost keyword matches 2x
+
+		// DisjunctionQuery combines results, boosted keywords will score higher
+		q = bleve.NewDisjunctionQuery(nameQuery, contentQuery, keywordsQuery)
 	}
 
-	searchRequest := bleve.NewSearchRequest(query)
+	searchRequest := bleve.NewSearchRequest(q)
 	searchRequest.Size = maxResults
 	searchRequest.Fields = []string{"uri", "name", "content"} // Retrieve content too
 

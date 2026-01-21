@@ -67,9 +67,10 @@ func (p *ResourceProvider) GetAllResourceContents() []map[string]string {
 			continue
 		}
 		results = append(results, map[string]string{
-			"uri":     defn.URI,
-			"name":    defn.Name,
-			"content": content,
+			"uri":      defn.URI,
+			"name":     defn.Name,
+			"content":  content,
+			"keywords": strings.Join(defn.Keywords, ","),
 		})
 	}
 	return results
@@ -107,6 +108,16 @@ func DiscoverResources(cp *content.ContentProvider) ([]ResourceDefinition, error
 			return nil
 		}
 
+		// Extract optional keywords
+		var keywords []string
+		if kw, ok := md.Metadata["keywords"].([]interface{}); ok {
+			for _, k := range kw {
+				if s, ok := k.(string); ok {
+					keywords = append(keywords, s)
+				}
+			}
+		}
+
 		// Derive URI
 		relPath, err := filepath.Rel(resourcesDir, path)
 		if err != nil {
@@ -124,6 +135,7 @@ func DiscoverResources(cp *content.ContentProvider) ([]ResourceDefinition, error
 			Description: description,
 			MIMEType:    "text/markdown",
 			FilePath:    path,
+			Keywords:    keywords,
 		})
 
 		slog.Info("Loaded resource", "uri", uri, "name", name)

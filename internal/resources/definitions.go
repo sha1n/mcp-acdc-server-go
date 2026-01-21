@@ -7,4 +7,5 @@ type ResourceDefinition struct {
 	Description string
 	MIMEType    string
 	FilePath    string
+	Keywords    []string // Optional keywords for search boosting
 }
