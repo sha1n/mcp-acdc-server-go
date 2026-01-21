@@ -1,5 +1,13 @@
 package resources
 
+// Field name constants for resource metadata
+const (
+	FieldURI      = "uri"
+	FieldName     = "name"
+	FieldContent  = "content"
+	FieldKeywords = "keywords"
+)
+
 // ResourceDefinition definition of an MCP resource
 type ResourceDefinition struct {
 	URI         string

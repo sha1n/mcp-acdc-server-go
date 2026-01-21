@@ -279,24 +279,27 @@ func TestSearch_WrongTypeName(t *testing.T) {
 
 // TestSearch_KeywordsBoosting proves that documents with matching keywords
 // score higher than documents without keywords, even with identical content.
+// This test is strict: both documents match the search term in content,
+// but only one has it as a keyword. The keyword-boosted doc must rank first
+// AND have a measurably higher score.
 func TestSearch_KeywordsBoosting(t *testing.T) {
 	service := NewService(config.SearchSettings{InMemory: true, MaxResults: 10})
 	defer service.Close()
 
-	// Two documents with identical content
-	// Only doc2 has keywords that include the search term
+	// CRITICAL: Both documents contain "development" in their content
+	// Only doc2 has "development" as a keyword (which gets 2x boost)
 	docs := []Document{
 		{
 			URI:      "acdc://doc1",
 			Name:     "Document One",
-			Content:  "Information about software engineering practices",
-			Keywords: nil, // No keywords
+			Content:  "Information about software development practices", // Has "development" in content
+			Keywords: nil,                                                // No keywords
 		},
 		{
 			URI:      "acdc://doc2",
 			Name:     "Document Two",
-			Content:  "Information about software engineering practices", // Same content
-			Keywords: []string{"development", "coding"},                  // Keywords include search term
+			Content:  "Information about software development practices", // Same content with "development"
+			Keywords: []string{"development", "coding"},                  // Also has "development" as keyword
 		},
 	}
 
@@ -304,19 +307,23 @@ func TestSearch_KeywordsBoosting(t *testing.T) {
 		t.Fatalf("IndexDocuments failed: %v", err)
 	}
 
-	// Search for "development" - doc2 has it as a keyword
+	// Search for "development" - both docs match in content, but doc2 also matches in keywords
 	results, err := service.Search("development", nil)
 	if err != nil {
 		t.Fatalf("Search failed: %v", err)
 	}
 
-	if len(results) < 1 {
-		t.Fatalf("Expected at least 1 result, got %d", len(results))
+	// Both documents should match (they both have "development" in content)
+	if len(results) != 2 {
+		t.Fatalf("Expected 2 results (both docs contain 'development'), got %d", len(results))
 	}
 
-	// doc2 should be first because it has "development" as a boosted keyword
+	// doc2 MUST be first because it has "development" as a boosted keyword (2x boost)
 	if results[0].URI != "acdc://doc2" {
-		t.Errorf("Expected doc2 (with keyword 'development') to rank first, got %s", results[0].URI)
+		t.Errorf("Expected doc2 (with keyword boost) to rank first, got %s", results[0].URI)
+	}
+	if results[1].URI != "acdc://doc1" {
+		t.Errorf("Expected doc1 to rank second, got %s", results[1].URI)
 	}
 }
 

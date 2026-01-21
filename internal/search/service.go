@@ -9,6 +9,7 @@ import (
 	"github.com/blevesearch/bleve/v2/mapping"
 	"github.com/blevesearch/bleve/v2/search/query"
 	"github.com/sha1n/mcp-acdc-server-go/internal/config"
+	"github.com/sha1n/mcp-acdc-server-go/internal/resources"
 )
 
 // SearchResult represents a search result
@@ -131,10 +132,10 @@ func buildMapping() mapping.IndexMapping {
 	keywordsMapping.Analyzer = "standard"
 
 	docMapping := bleve.NewDocumentMapping()
-	docMapping.AddFieldMappingsAt("uri", uriMapping)
-	docMapping.AddFieldMappingsAt("name", nameMapping)
-	docMapping.AddFieldMappingsAt("content", contentMapping)
-	docMapping.AddFieldMappingsAt("keywords", keywordsMapping)
+	docMapping.AddFieldMappingsAt(resources.FieldURI, uriMapping)
+	docMapping.AddFieldMappingsAt(resources.FieldName, nameMapping)
+	docMapping.AddFieldMappingsAt(resources.FieldContent, contentMapping)
+	docMapping.AddFieldMappingsAt(resources.FieldKeywords, keywordsMapping)
 
 	mapping := bleve.NewIndexMapping()
 	mapping.DefaultMapping = docMapping
@@ -160,13 +161,13 @@ func (s *Service) Search(queryStr string, limit *int) ([]SearchResult, error) {
 	} else {
 		// Create field-specific queries with boosting
 		nameQuery := bleve.NewMatchQuery(queryStr)
-		nameQuery.SetField("name")
+		nameQuery.SetField(resources.FieldName)
 
 		contentQuery := bleve.NewMatchQuery(queryStr)
-		contentQuery.SetField("content")
+		contentQuery.SetField(resources.FieldContent)
 
 		keywordsQuery := bleve.NewMatchQuery(queryStr)
-		keywordsQuery.SetField("keywords")
+		keywordsQuery.SetField(resources.FieldKeywords)
 		keywordsQuery.SetBoost(2.0) // Boost keyword matches 2x
 
 		// DisjunctionQuery combines results, boosted keywords will score higher
@@ -175,7 +176,7 @@ func (s *Service) Search(queryStr string, limit *int) ([]SearchResult, error) {
 
 	searchRequest := bleve.NewSearchRequest(q)
 	searchRequest.Size = maxResults
-	searchRequest.Fields = []string{"uri", "name", "content"} // Retrieve content too
+	searchRequest.Fields = []string{resources.FieldURI, resources.FieldName, resources.FieldContent}
 
 	searchResult, err := s.index.Search(searchRequest)
 	if err != nil {
@@ -184,13 +185,13 @@ func (s *Service) Search(queryStr string, limit *int) ([]SearchResult, error) {
 
 	results := make([]SearchResult, 0, len(searchResult.Hits))
 	for _, hit := range searchResult.Hits {
-		uri, ok := hit.Fields["uri"].(string)
+		uri, ok := hit.Fields[resources.FieldURI].(string)
 		if !ok {
 			slog.Warn("Search hit missing URI field", "id", hit.ID)
 			continue
 		}
 
-		name, ok := hit.Fields["name"].(string)
+		name, ok := hit.Fields[resources.FieldName].(string)
 		if !ok || name == "" {
 			name = "Unknown" // Fallback
 		}

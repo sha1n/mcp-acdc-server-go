@@ -67,10 +67,10 @@ func (p *ResourceProvider) GetAllResourceContents() []map[string]string {
 			continue
 		}
 		results = append(results, map[string]string{
-			"uri":      defn.URI,
-			"name":     defn.Name,
-			"content":  content,
-			"keywords": strings.Join(defn.Keywords, ","),
+			FieldURI:      defn.URI,
+			FieldName:     defn.Name,
+			FieldContent:  content,
+			FieldKeywords: strings.Join(defn.Keywords, ","),
 		})
 	}
 	return results
