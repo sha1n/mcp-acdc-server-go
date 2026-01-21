@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/sha1n/mcp-acdc-server-go/internal/config"
@@ -55,10 +56,15 @@ func CreateMCPServer(settings *config.Settings) (*server.MCPServer, func(), erro
 	docsToIndex := resourceProvider.GetAllResourceContents()
 	var docs []search.Document
 	for _, d := range docsToIndex {
+		var keywords []string
+		if kw := d[resources.FieldKeywords]; kw != "" {
+			keywords = strings.Split(kw, ",")
+		}
 		docs = append(docs, search.Document{
-			URI:     d["uri"],
-			Name:    d["name"],
-			Content: d["content"],
+			URI:      d[resources.FieldURI],
+			Name:     d[resources.FieldName],
+			Content:  d[resources.FieldContent],
+			Keywords: keywords,
 		})
 	}
 

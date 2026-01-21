@@ -9,6 +9,7 @@ import (
 	"github.com/blevesearch/bleve/v2/mapping"
 	"github.com/blevesearch/bleve/v2/search/query"
 	"github.com/sha1n/mcp-acdc-server-go/internal/config"
+	"github.com/sha1n/mcp-acdc-server-go/internal/resources"
 )
 
 // SearchResult represents a search result
@@ -20,9 +21,10 @@ type SearchResult struct {
 
 // Document represents a document to index
 type Document struct {
-	URI     string `json:"uri"`
-	Name    string `json:"name"`
-	Content string `json:"content"`
+	URI      string   `json:"uri"`
+	Name     string   `json:"name"`
+	Content  string   `json:"content"`
+	Keywords []string `json:"keywords,omitempty"`
 }
 
 // Searcher interface in search package
@@ -122,10 +124,18 @@ func buildMapping() mapping.IndexMapping {
 	contentMapping.IncludeInAll = true
 	contentMapping.Analyzer = "standard"
 
+	// Keywords field: Indexed, Not Stored, Included in All
+	// Boosting is done at query-time via DisjunctionQuery
+	keywordsMapping := bleve.NewTextFieldMapping()
+	keywordsMapping.Store = false
+	keywordsMapping.IncludeInAll = true
+	keywordsMapping.Analyzer = "standard"
+
 	docMapping := bleve.NewDocumentMapping()
-	docMapping.AddFieldMappingsAt("uri", uriMapping)
-	docMapping.AddFieldMappingsAt("name", nameMapping)
-	docMapping.AddFieldMappingsAt("content", contentMapping)
+	docMapping.AddFieldMappingsAt(resources.FieldURI, uriMapping)
+	docMapping.AddFieldMappingsAt(resources.FieldName, nameMapping)
+	docMapping.AddFieldMappingsAt(resources.FieldContent, contentMapping)
+	docMapping.AddFieldMappingsAt(resources.FieldKeywords, keywordsMapping)
 
 	mapping := bleve.NewIndexMapping()
 	mapping.DefaultMapping = docMapping
@@ -143,19 +153,30 @@ func (s *Service) Search(queryStr string, limit *int) ([]SearchResult, error) {
 		maxResults = *limit
 	}
 
-	// Match query (searches across all fields included in 'all')
-	// Python uses parse_query with default fields ["name", "content"]
-	// Bleve's QueryStringQuery is similar
-	var query query.Query
+	// Build query with keyword boosting
+	// Use DisjunctionQuery to search multiple fields with different boosts
+	var q query.Query
 	if queryStr == "*" {
-		query = bleve.NewMatchAllQuery()
+		q = bleve.NewMatchAllQuery()
 	} else {
-		query = bleve.NewQueryStringQuery(queryStr)
+		// Create field-specific queries with boosting
+		nameQuery := bleve.NewMatchQuery(queryStr)
+		nameQuery.SetField(resources.FieldName)
+
+		contentQuery := bleve.NewMatchQuery(queryStr)
+		contentQuery.SetField(resources.FieldContent)
+
+		keywordsQuery := bleve.NewMatchQuery(queryStr)
+		keywordsQuery.SetField(resources.FieldKeywords)
+		keywordsQuery.SetBoost(2.0) // Boost keyword matches 2x
+
+		// DisjunctionQuery combines results, boosted keywords will score higher
+		q = bleve.NewDisjunctionQuery(nameQuery, contentQuery, keywordsQuery)
 	}
 
-	searchRequest := bleve.NewSearchRequest(query)
+	searchRequest := bleve.NewSearchRequest(q)
 	searchRequest.Size = maxResults
-	searchRequest.Fields = []string{"uri", "name", "content"} // Retrieve content too
+	searchRequest.Fields = []string{resources.FieldURI, resources.FieldName, resources.FieldContent}
 
 	searchResult, err := s.index.Search(searchRequest)
 	if err != nil {
@@ -164,13 +185,13 @@ func (s *Service) Search(queryStr string, limit *int) ([]SearchResult, error) {
 
 	results := make([]SearchResult, 0, len(searchResult.Hits))
 	for _, hit := range searchResult.Hits {
-		uri, ok := hit.Fields["uri"].(string)
+		uri, ok := hit.Fields[resources.FieldURI].(string)
 		if !ok {
 			slog.Warn("Search hit missing URI field", "id", hit.ID)
 			continue
 		}
 
-		name, ok := hit.Fields["name"].(string)
+		name, ok := hit.Fields[resources.FieldName].(string)
 		if !ok || name == "" {
 			name = "Unknown" // Fallback
 		}

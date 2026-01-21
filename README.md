@@ -124,6 +124,8 @@ API keys must be provided via the `X-API-Key` header in HTTP requests.
 ### Content Metadata
 The server expects an `mcp-metadata.yaml` file in the root of your content directory to define server identity.
 
+For details on authoring resource files, including frontmatter format and search keyword boosting, see the [Authoring Resources Guide](docs/authoring-resources.md).
+
 ## 🛠️ Development
 
 Use the provided `Makefile` for common tasks:
