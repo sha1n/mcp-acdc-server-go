@@ -72,6 +72,21 @@ docker run -p 8080:8080 \
   sha1n/mcp-acdc-server:latest
 ```
 
+### Health Check (SSE Only)
+The SSE server exposes an unauthenticated `/health` endpoint that returns `200 OK`. This can be used as a liveness or readiness probe in Kubernetes:
+
+```yaml
+livenessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+readinessProbe:
+  httpGet:
+    path: /health
+    port: 8080
+```
+
+
 ## ⚙️ Configuration
 
 | Flag | Short | Environment Variable | Default |
