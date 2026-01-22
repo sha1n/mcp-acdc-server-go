@@ -71,7 +71,9 @@ instructions: |
 
 ### Tools Section
 
-The tools section allows overriding metadata for the server's available tools (`search` and `read`). If this section is omitted, the server provides high-quality default descriptions for these tools.
+The tools section allows overriding metadata for the server's available tools (`search` and `read`). If this section is omitted, the server provides high-quality default descriptions for these tools. 
+
+You might want to override these defaults to provide more specific instructions for your AI agents, such as adding examples tailored to your content or adjusting the tool's perceived scope to better fit your domain.
 
 If you provide a tool in this section, it requires:
 
