@@ -72,7 +72,7 @@ test: install go-test
 .PHONY: coverage
 coverage: install
 	@echo "  >  Running tests with coverage..."
-	go test $(MODFLAGS) -coverprofile=coverage.out ./...
+	go test $(MODFLAGS) -coverpkg=./... -coverprofile=coverage.out ./...
 	go tool cover -func=coverage.out
 
 ## coverage-html: Runs tests and opens the coverage report in a browser
