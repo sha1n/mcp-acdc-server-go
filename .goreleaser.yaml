@@ -11,10 +11,10 @@ builds:
       - linux
       - darwin
       - windows
-    main: ./cmd/mcp-acdc
-    binary: mcp-acdc
+    main: ./cmd/acdc-mcp
+    binary: acdc-mcp
     ldflags:
-      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+      - -s -w -X main.Version={{.Version}} -X main.Build={{.ShortCommit}} -X main.ProgramName=acdc-mcp
 
 archives:
   - format: tar.gz
@@ -48,17 +48,17 @@ brews:
   - repository:
       owner: sha1n
       name: homebrew-tap
-      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+      token: "{{ .Env.HOMEBREW_RELEASE_TOKEN }}"
 
     # TAP repository directory
     directory: Formula
 
     # Homepage placeholder
-    homepage: "https://github.com/sha1n/mcp-acdc-server-go"
+    homepage: "https://github.com/sha1n/mcp-acdc-server"
 
     # Description placeholder
     description: "MCP ACDC Server"
 
     # Custom install instruction
     install: |
-      bin.install "mcp-acdc"
+      bin.install "acdc-mcp"
