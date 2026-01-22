@@ -25,12 +25,20 @@ func StartSSEServer(s *server.MCPServer, settings *config.Settings) error {
 func NewSSEServer(s *server.MCPServer, settings *config.Settings) (*http.Server, error) {
 	sseServer := server.NewSSEServer(s)
 
+	mux := http.NewServeMux()
+	mux.HandleFunc("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	})
+	mux.Handle("/", sseServer)
+
 	authMiddleware, err := auth.NewMiddleware(settings.Auth)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create auth middleware: %w", err)
 	}
 
-	handler := authMiddleware(sseServer)
+	handler := authMiddleware(mux)
 	addr := fmt.Sprintf("%s:%d", settings.Host, settings.Port)
 
 	return &http.Server{

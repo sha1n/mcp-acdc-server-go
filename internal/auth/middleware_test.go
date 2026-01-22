@@ -216,12 +216,12 @@ func TestPathExclusions(t *testing.T) {
 		t.Errorf("/health should be accessible without auth, got %d", w.Code)
 	}
 
-	// Test that /ready is accessible without auth
+	// Test that /ready requires auth
 	req = httptest.NewRequest("GET", "/ready", nil)
 	w = httptest.NewRecorder()
 	handler.ServeHTTP(w, req)
-	if w.Code != http.StatusOK {
-		t.Errorf("/ready should be accessible without auth, got %d", w.Code)
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("/ready should require auth, got %d", w.Code)
 	}
 
 	// Test that other paths still require auth

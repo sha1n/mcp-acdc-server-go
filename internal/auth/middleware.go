@@ -11,7 +11,6 @@ import (
 // excludedPaths are paths that bypass authentication (e.g., health checks)
 var excludedPaths = map[string]bool{
 	"/health": true,
-	"/ready":  true,
 }
 
 // isExcludedPath checks if the request path should bypass authentication
