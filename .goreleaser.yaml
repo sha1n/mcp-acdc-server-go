@@ -5,11 +5,21 @@ before:
     - go mod tidy
 
 builds:
-  - env:
+  - id: default
+    env:
       - CGO_ENABLED=0
     goos:
       - linux
       - darwin
+    main: ./cmd/acdc-mcp
+    binary: acdc-mcp
+    ldflags:
+      - -s -w -X main.Version={{.Version}} -X main.Build={{.ShortCommit}} -X main.ProgramName=acdc-mcp
+
+  - id: windows
+    env:
+      - CGO_ENABLED=0
+    goos:
       - windows
     main: ./cmd/acdc-mcp
     binary: acdc-mcp
@@ -18,11 +28,10 @@ builds:
 
 archives:
   - id: nix
+    builds:
+      - default
     formats:
       - tar.gz
-    goos:
-      - linux
-      - darwin
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
@@ -32,10 +41,10 @@ archives:
       {{- if .Arm }}v{{ .Arm }}{{ end }}
 
   - id: windows
+    builds:
+      - windows
     formats:
       - zip
-    goos:
-      - windows
     name_template: >-
       {{ .ProjectName }}_
       {{- title .Os }}_
