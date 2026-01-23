@@ -13,7 +13,9 @@ func TestCreateMCPServer_Success(t *testing.T) {
 	tempDir := t.TempDir()
 	contentDir := filepath.Join(tempDir, "content")
 	resourcesDir := filepath.Join(contentDir, "mcp-resources")
+	promptsDir := filepath.Join(contentDir, "mcp-prompts")
 	_ = os.MkdirAll(resourcesDir, 0755)
+	_ = os.MkdirAll(promptsDir, 0755)
 
 	metadataContent := `
 server:
@@ -26,6 +28,9 @@ tools: []
 
 	resFile := filepath.Join(resourcesDir, "res.md")
 	_ = os.WriteFile(resFile, []byte("---\nname: res\ndescription: A test resource\n---\ncontent"), 0644)
+
+	promptFile := filepath.Join(promptsDir, "prompt.md")
+	_ = os.WriteFile(promptFile, []byte("---\nname: prompt\ndescription: A test prompt\n---\nHello"), 0644)
 
 	settings := &config.Settings{
 		ContentDir: contentDir,
@@ -285,5 +290,34 @@ tools:
 	_, _, err := CreateMCPServer(settings)
 	if err == nil || !strings.Contains(err.Error(), "duplicate tool name") {
 		t.Errorf("Expected duplicate tool name error, got: %v", err)
+	}
+}
+func TestCreateMCPServer_PromptDiscoveryError(t *testing.T) {
+	tempDir := t.TempDir()
+	contentDir := filepath.Join(tempDir, "content")
+	_ = os.MkdirAll(contentDir, 0755)
+
+	metadataContent := `server: { name: test, version: 1.0, instructions: inst }`
+	_ = os.WriteFile(filepath.Join(contentDir, "mcp-metadata.yaml"), []byte(metadataContent), 0644)
+
+	// Create resources dir so it doesn't fail here
+	resourcesDir := filepath.Join(contentDir, "mcp-resources")
+	_ = os.MkdirAll(resourcesDir, 0755)
+
+	// Create a symlink loop to cause os.Stat to fail with "too many levels of symbolic links"
+	promptsDir := filepath.Join(contentDir, "mcp-prompts")
+	_ = os.Symlink(promptsDir, promptsDir)
+
+	settings := &config.Settings{
+		ContentDir: contentDir,
+		Search:     config.SearchSettings{InMemory: true},
+	}
+
+	_, _, err := CreateMCPServer(settings)
+	if err == nil {
+		t.Fatal("Expected error for prompt discovery failure")
+	}
+	if !strings.Contains(err.Error(), "failed to discover prompts") {
+		t.Errorf("Unexpected error message: %v", err)
 	}
 }

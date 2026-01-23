@@ -11,6 +11,7 @@ import (
 	"github.com/sha1n/mcp-acdc-server/internal/content"
 	"github.com/sha1n/mcp-acdc-server/internal/domain"
 	"github.com/sha1n/mcp-acdc-server/internal/mcp"
+	"github.com/sha1n/mcp-acdc-server/internal/prompts"
 	"github.com/sha1n/mcp-acdc-server/internal/resources"
 	"github.com/sha1n/mcp-acdc-server/internal/search"
 	"gopkg.in/yaml.v3"
@@ -46,6 +47,14 @@ func CreateMCPServer(settings *config.Settings) (*server.MCPServer, func(), erro
 
 	resourceProvider := resources.NewResourceProvider(resourceDefinitions)
 
+	// Discover prompts
+	promptDefinitions, err := prompts.DiscoverPrompts(cp)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to discover prompts: %w", err)
+	}
+
+	promptProvider := prompts.NewPromptProvider(promptDefinitions, cp)
+
 	// Initialize search service
 	searchService := search.NewService(settings.Search)
 	cleanup := func() {
@@ -75,7 +84,7 @@ func CreateMCPServer(settings *config.Settings) (*server.MCPServer, func(), erro
 	}
 
 	// Create MCP server
-	mcpServer := mcp.CreateServer(metadata, resourceProvider, searchService)
+	mcpServer := mcp.CreateServer(metadata, resourceProvider, promptProvider, searchService)
 
 	return mcpServer, cleanup, nil
 }

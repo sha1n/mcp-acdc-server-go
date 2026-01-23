@@ -8,14 +8,14 @@
 
 ## Tooling  
 
-- [ ] [RELEASE] Optimize the Release Drafter configuration
+- [x] [RELEASE] Optimize the Release Drafter configuration
 - [ ] [RELEASE] Create a Pull Request template
 - [ ] [DEV] Add Dev Container: Create a .devcontainer configuration to standardize the development environment
 
 ## Functional
 
-- [ ] [MCP] Add prompts support
-- [ ] [MCP] Explore how to implement content based commands
+- [x] [MCP] Add prompts support
+- [x] [MCP] Explore how to implement content based commands
 - [ ] [CLI] Implement version flags (`--version` / `-v`)
 - [ ] [CONTENT] Support Git repositories as content sources
   - [ ] [CONTENT] Implement scheduled synchronization and re-indexing (Note: Server metadata updates require reconnection)

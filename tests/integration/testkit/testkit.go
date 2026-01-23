@@ -87,7 +87,7 @@ func GetFreePort() (int, error) {
 }
 
 // MustGetFreePort returns a free port or fails the test
-func MustGetFreePort(t *testing.T) int {
+func MustGetFreePort(t testing.TB) int {
 	t.Helper()
 	port, err := GetFreePort()
 	if err != nil {
@@ -114,6 +114,7 @@ func getFreePortWithAddr(addrStr string) (int, error) {
 type ContentDirOptions struct {
 	Metadata  string            // Custom metadata YAML (uses default if empty)
 	Resources map[string]string // filename -> content (no resources if nil)
+	Prompts   map[string]string // filename -> content (no prompts if nil)
 }
 
 // DefaultMetadata returns the default test metadata YAML
@@ -128,7 +129,7 @@ tools: []
 
 // CreateTestContentDir creates a temp content directory with metadata and optional resources.
 // Returns the content directory path.
-func CreateTestContentDir(t *testing.T, opts *ContentDirOptions) string {
+func CreateTestContentDir(t testing.TB, opts *ContentDirOptions) string {
 	t.Helper()
 
 	tempDir := t.TempDir()
@@ -160,6 +161,22 @@ func CreateTestContentDir(t *testing.T, opts *ContentDirOptions) string {
 		}
 	}
 
+	if opts != nil && opts.Prompts != nil {
+		promptsDir := filepath.Join(contentDir, "mcp-prompts")
+		if err := os.MkdirAll(promptsDir, 0755); err != nil {
+			t.Fatalf("Failed to create prompts dir: %v", err)
+		}
+		for name, content := range opts.Prompts {
+			path := filepath.Join(promptsDir, name)
+			if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+				t.Fatalf("Failed to create parent dir for prompt %s: %v", name, err)
+			}
+			if err := os.WriteFile(path, []byte(content), 0644); err != nil {
+				t.Fatalf("Failed to write prompt %s: %v", name, err)
+			}
+		}
+	}
+
 	return contentDir
 }
 
@@ -172,7 +189,7 @@ type FlagOptions struct {
 }
 
 // NewTestFlags creates a configured pflag.FlagSet for testing
-func NewTestFlags(t *testing.T, contentDir string, opts *FlagOptions) *pflag.FlagSet {
+func NewTestFlags(t testing.TB, contentDir string, opts *FlagOptions) *pflag.FlagSet {
 	t.Helper()
 
 	flags := pflag.NewFlagSet("test", pflag.ContinueOnError)

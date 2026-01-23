@@ -6,6 +6,7 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/sha1n/mcp-acdc-server/internal/domain"
+	"github.com/sha1n/mcp-acdc-server/internal/prompts"
 	"github.com/sha1n/mcp-acdc-server/internal/resources"
 	"github.com/sha1n/mcp-acdc-server/internal/search"
 )
@@ -21,6 +22,7 @@ const (
 func CreateServer(
 	metadata domain.McpMetadata,
 	resourceProvider *resources.ResourceProvider,
+	promptProvider *prompts.PromptProvider,
 	searchService search.Searcher,
 ) *server.MCPServer {
 	// Create server
@@ -41,6 +43,20 @@ func CreateServer(
 			Description: res.Description,
 			MIMEType:    res.MIMEType,
 		}, makeResourceHandler(resourceProvider, uri))
+	}
+
+	// Register Prompts
+	for _, p := range promptProvider.ListPrompts() {
+		// Capture name for closure
+		name := p.Name
+
+		s.AddPrompt(mcp.Prompt{
+			Name:        name,
+			Description: p.Description,
+			Arguments:   p.Arguments,
+		}, makePromptHandler(promptProvider, name))
+
+		slog.Info("Registered prompt", "name", name)
 	}
 
 	// Register Tools

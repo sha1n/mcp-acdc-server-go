@@ -3,10 +3,12 @@ package mcp
 import (
 	"context"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/sha1n/mcp-acdc-server/internal/domain"
+	"github.com/sha1n/mcp-acdc-server/internal/prompts"
 	"github.com/sha1n/mcp-acdc-server/internal/resources"
 	"github.com/sha1n/mcp-acdc-server/internal/search"
 )
@@ -41,11 +43,12 @@ func TestCreateServer(t *testing.T) {
 		},
 	}
 	resProvider := resources.NewResourceProvider(resDefs)
+	promptProvider := prompts.NewPromptProvider(nil, nil)
 
 	searchService := &MockSearcher{}
 
 	// Create server
-	s := CreateServer(metadata, resProvider, searchService)
+	s := CreateServer(metadata, resProvider, promptProvider, searchService)
 
 	if s == nil {
 		t.Fatal("CreateServer returned nil")
@@ -180,10 +183,11 @@ func TestCreateServer_ToolsAlwaysRegistered(t *testing.T) {
 			}
 
 			resProvider := resources.NewResourceProvider(nil)
+			promptProvider := prompts.NewPromptProvider(nil, nil)
 			searchService := &MockSearcher{}
 
 			// CreateServer should not panic and tools should be registered
-			s := CreateServer(metadata, resProvider, searchService)
+			s := CreateServer(metadata, resProvider, promptProvider, searchService)
 			if s == nil {
 				t.Fatal("CreateServer returned nil")
 			}
@@ -213,5 +217,17 @@ func TestCreateServer_ToolsAlwaysRegistered(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+func TestPromptHandler_Error(t *testing.T) {
+	provider := prompts.NewPromptProvider(nil, nil)
+	handler := makePromptHandler(provider, "unknown")
+
+	_, err := handler(context.Background(), mcp.GetPromptRequest{})
+	if err == nil {
+		t.Fatal("Expected error for unknown prompt")
+	}
+	if !strings.Contains(err.Error(), "unknown prompt") {
+		t.Errorf("Unexpected error message: %v", err)
 	}
 }
