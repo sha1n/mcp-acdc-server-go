@@ -280,6 +280,9 @@ func TestCreateTestContentDir_WithOptions(t *testing.T) {
 		Resources: map[string]string{
 			"test.md": "---\nname: Test\ndescription: Test resource\n---\nContent",
 		},
+		Prompts: map[string]string{
+			"test-prompt.md": "---\nname: TestPrompt\ndescription: Test prompt\n---\nContent",
+		},
 	}
 	contentDir := CreateTestContentDir(t, opts)
 
@@ -295,6 +298,11 @@ func TestCreateTestContentDir_WithOptions(t *testing.T) {
 	// Verify resource file
 	if _, err := os.Stat(filepath.Join(contentDir, "mcp-resources", "test.md")); os.IsNotExist(err) {
 		t.Error("Resource file not created")
+	}
+
+	// Verify prompt file
+	if _, err := os.Stat(filepath.Join(contentDir, "mcp-prompts", "test-prompt.md")); os.IsNotExist(err) {
+		t.Error("Prompt file not created")
 	}
 }
 
@@ -351,5 +359,62 @@ func TestNewTestFlags_WithOptions(t *testing.T) {
 	}
 	if port != 9999 {
 		t.Errorf("Expected port 9999, got %d", port)
+	}
+}
+
+type mockTB struct {
+	*testing.T
+	failed  bool
+	tempDir string
+}
+
+func (m *mockTB) Fatalf(format string, args ...interface{}) {
+	m.failed = true
+}
+
+func (m *mockTB) TempDir() string {
+	return m.tempDir
+}
+
+func TestCreateTestContentDir_PromptsMkdirError(t *testing.T) {
+	tempDir := t.TempDir()
+	contentDir := filepath.Join(tempDir, "mkdir-err")
+	_ = os.MkdirAll(filepath.Join(contentDir, "content"), 0755)
+
+	// Create a file where a directory is expected to cause MkdirAll failure
+	promptsDir := filepath.Join(contentDir, "content", "mcp-prompts")
+	_ = os.WriteFile(promptsDir, []byte("not a directory"), 0644)
+
+	mt := &mockTB{T: t, tempDir: contentDir}
+	opts := &ContentDirOptions{
+		Prompts: map[string]string{"test.md": "content"},
+	}
+
+	CreateTestContentDir(mt, opts)
+
+	if !mt.failed {
+		t.Error("Expected failure for prompts MkdirAll")
+	}
+}
+
+func TestCreateTestContentDir_PromptsWriteError(t *testing.T) {
+	tempDir := t.TempDir()
+	contentDir := filepath.Join(tempDir, "write-err")
+	_ = os.MkdirAll(filepath.Join(contentDir, "content"), 0755)
+
+	mt := &mockTB{T: t, tempDir: contentDir}
+
+	opts := &ContentDirOptions{
+		Prompts: map[string]string{"test.md": "content"},
+	}
+
+	// Create a directory where a file is expected to cause WriteFile failure
+	promptsDir := filepath.Join(contentDir, "content", "mcp-prompts")
+	_ = os.MkdirAll(filepath.Join(promptsDir, "test.md"), 0755)
+
+	CreateTestContentDir(mt, opts)
+
+	if !mt.failed {
+		t.Error("Expected failure for prompts WriteFile")
 	}
 }

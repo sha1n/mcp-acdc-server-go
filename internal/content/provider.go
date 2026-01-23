@@ -19,6 +19,7 @@ type MarkdownWithFrontmatter struct {
 type ContentProvider struct {
 	ContentDir   string
 	ResourcesDir string
+	PromptsDir   string
 }
 
 // NewContentProvider creates a new ContentProvider
@@ -26,6 +27,7 @@ func NewContentProvider(contentDir string) *ContentProvider {
 	return &ContentProvider{
 		ContentDir:   contentDir,
 		ResourcesDir: filepath.Join(contentDir, "mcp-resources"),
+		PromptsDir:   filepath.Join(contentDir, "mcp-prompts"),
 	}
 }
 

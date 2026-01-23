@@ -43,6 +43,7 @@ acdc-mcp --content-dir ./content
 
 - **Full-Text Search** — Fast indexing with stemming, fuzzy matching, and configurable boosting
 - **Dynamic Resource Discovery** — Automatic scanning of content directories
+- **Dynamic Prompt Discovery** — Automatic scanning of prompt templates
 - **MCP Compliant** — Seamless integration with AI agents
 - **Dual Transport** — `stdio` for local agents, `sse` for remote/Docker
 - **Authentication** — Optional basic auth or API key protection
