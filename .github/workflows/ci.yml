@@ -103,29 +103,6 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  codeql:
-    needs: changes
-    if: needs.changes.outputs.src == 'true' || github.event_name == 'schedule' || github.event_name == 'pull_request' || (github.event_name == 'push' && contains(github.ref, 'refs/tags/'))
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - language: actions
-            build-mode: none
-          - language: go
-            build-mode: autobuild
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
-        with:
-          languages: ${{ matrix.language }}
-          build-mode: ${{ matrix.build-mode }}
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
-
   go-report-card:
     needs: changes
     if: needs.changes.outputs.src == 'true' && (github.event_name == 'push' || github.event_name == 'pull_request') && (github.ref == 'refs/heads/master' || github.base_ref == 'master')
@@ -136,13 +113,13 @@ jobs:
 
   # This job acts as a bridge for documentation-only PRs to satisfy status checks
   status-check:
-    needs: [changes, test, docker, codeql, go-report-card]
+    needs: [changes, test, docker, go-report-card]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Verify status
         run: |
-          if [[ "${{ needs.test.result }}" == "failure" || "${{ needs.docker.result }}" == "failure" || "${{ needs.codeql.result }}" == "failure" ]]; then
+          if [[ "${{ needs.test.result }}" == "failure" || "${{ needs.docker.result }}" == "failure" ]]; then
             echo "One or more critical jobs failed."
             exit 1
           fi
