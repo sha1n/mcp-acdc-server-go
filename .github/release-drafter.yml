@@ -10,22 +10,90 @@ categories:
       - 'fix'
       - 'bugfix'
       - 'bug'
+  - title: '📖 Documentation'
+    labels:
+      - 'documentation'
+      - 'docs'
+  - title: '🧪 Testing'
+    labels:
+      - 'test'
+      - 'testing'
   - title: '🧰 Maintenance'
-    label: 'chore'
+    labels:
+      - 'chore'
+      - 'refactor'
+      - 'style'
+      - 'perf'
+      - 'build'
+      - 'ci'
+  - title: '📦 Dependency Updates'
+    labels:
+      - 'dependencies'
+      - 'deps'
 change-template: '- $TITLE @$AUTHOR (#$NUMBER)'
 change-title-escapes: '\<*_&#@'
 version-resolver:
   major:
     labels:
       - 'major'
+      - 'breaking'
   minor:
     labels:
       - 'minor'
+      - 'feature'
+      - 'enhancement'
   patch:
     labels:
       - 'patch'
+      - 'fix'
+      - 'bugfix'
+      - 'bug'
+      - 'chore'
+      - 'dependencies'
+      - 'documentation'
+      - 'test'
   default: patch
+autolabeler:
+  - label: 'major'
+    title:
+      - '/!:/'
+  - label: 'feature'
+    title:
+      - '/^feat/i'
+  - label: 'fix'
+    title:
+      - '/^fix/i'
+  - label: 'documentation'
+    title:
+      - '/^docs/i'
+    files:
+      - 'README.md'
+      - 'docs/**'
+      - 'examples/**'
+  - label: 'chore'
+    title:
+      - '/^chore/i'
+      - '/^build/i'
+      - '/^ci/i'
+      - '/^style/i'
+      - '/^refactor/i'
+      - '/^perf/i'
+  - label: 'test'
+    title:
+      - '/^test/i'
+    files:
+      - 'tests/**'
+  - label: 'dependencies'
+    title:
+      - '/^deps/i'
+    branch:
+      - '/^dependabot/'
 template: |
   ## Changes
 
   $CHANGES
+
+  ## New Contributors
+  * @$AUTHOR made their first contribution in #$NUMBER
+
+  **Full Changelog**: https://github.com/sha1n/mcp-acdc-server/compare/$BASE_TAG...$NEXT_TAG
