@@ -16,7 +16,7 @@
 
 - [x] [MCP] Add prompts support
 - [x] [MCP] Explore how to implement content based commands
-- [ ] [CLI] Implement version flags (`--version` / `-v`)
+- [x] [CLI] Implement version flags (`--version` / `-v`)
 - [ ] [CONTENT] Support Git repositories as content sources
   - [ ] [CONTENT] Implement scheduled synchronization and re-indexing (Note: Server metadata updates require reconnection)
 - [ ] [SEARCH] Support keyword boosting in the search API, so that agents can improve search quality based on context

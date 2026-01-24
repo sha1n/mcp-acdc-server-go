@@ -30,13 +30,17 @@ func runMain(args []string, exit func(int)) {
 // Execute is the entry point for the CLI, extracted for testing
 func Execute(version, build, programName string, args []string) error {
 	rootCmd := &cobra.Command{
-		Use:   programName,
-		Short: "MCP ACDC Server",
-		Long:  "Agent Content Discovery Companion (ACDC) MCP Server",
+		Use:     programName,
+		Short:   "ACDC MCP Server",
+		Long:    "Agent Content Discovery Companion (ACDC) MCP Server",
+		Version: version,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return runWithFlags(cmd.Flags(), version)
 		},
 	}
+
+	rootCmd.SetVersionTemplate(`{{.Version}}
+`)
 
 	app.RegisterFlags(rootCmd.Flags())
 	rootCmd.SetArgs(args)
