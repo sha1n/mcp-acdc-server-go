@@ -3,7 +3,6 @@ package app
 import (
 	"context"
 	"fmt"
-	"log/slog"
 	"os"
 
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
@@ -62,20 +61,7 @@ func CreateMCPServer(settings *config.Settings) (*mcpsdk.Server, func(), error) 
 	}
 
 	// Index resources
-	docsChan := make(chan domain.Document, 100)
-	ctx := context.Background()
-	go func() {
-		defer close(docsChan)
-		if err := resourceProvider.StreamResources(ctx, docsChan); err != nil {
-			slog.Error("StreamResources failed", "error", err)
-		}
-	}()
-
-	if err := searchService.Index(ctx, docsChan); err != nil {
-		slog.Error("Failed to index documents", "error", err)
-	} else {
-		slog.Info("Indexed documents finished")
-	}
+	IndexResources(context.Background(), resourceProvider, searchService)
 
 	// Create MCP server
 	mcpServer := mcp.CreateServer(metadata, resourceProvider, promptProvider, searchService)
