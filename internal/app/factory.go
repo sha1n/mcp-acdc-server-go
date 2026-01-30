@@ -1,10 +1,10 @@
 package app
 
 import (
+	"context"
 	"fmt"
 	"log/slog"
 	"os"
-	"strings"
 
 	mcpsdk "github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/sha1n/mcp-acdc-server/internal/config"
@@ -62,25 +62,19 @@ func CreateMCPServer(settings *config.Settings) (*mcpsdk.Server, func(), error) 
 	}
 
 	// Index resources
-	docsToIndex := resourceProvider.GetAllResourceContents()
-	var docs []search.Document
-	for _, d := range docsToIndex {
-		var keywords []string
-		if kw := d[resources.FieldKeywords]; kw != "" {
-			keywords = strings.Split(kw, ",")
+	docsChan := make(chan domain.Document, 100)
+	ctx := context.Background()
+	go func() {
+		defer close(docsChan)
+		if err := resourceProvider.StreamResources(ctx, docsChan); err != nil {
+			slog.Error("StreamResources failed", "error", err)
 		}
-		docs = append(docs, search.Document{
-			URI:      d[resources.FieldURI],
-			Name:     d[resources.FieldName],
-			Content:  d[resources.FieldContent],
-			Keywords: keywords,
-		})
-	}
+	}()
 
-	if err := searchService.IndexDocuments(docs); err != nil {
+	if err := searchService.Index(ctx, docsChan); err != nil {
 		slog.Error("Failed to index documents", "error", err)
-	} else if len(docs) > 0 {
-		slog.Info("Indexed documents", "count", len(docs))
+	} else {
+		slog.Info("Indexed documents finished")
 	}
 
 	// Create MCP server

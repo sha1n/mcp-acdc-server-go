@@ -1,11 +1,13 @@
 package search
 
 import (
+	"context"
 	"os"
 	"testing"
 
 	"github.com/blevesearch/bleve/v2"
 	"github.com/sha1n/mcp-acdc-server/internal/config"
+	"github.com/sha1n/mcp-acdc-server/internal/domain"
 )
 
 func testSettings() config.SearchSettings {
@@ -17,12 +19,21 @@ func testSettings() config.SearchSettings {
 	}
 }
 
+func indexDocsHelper(s *Service, docs []domain.Document) error {
+	ch := make(chan domain.Document, len(docs))
+	for _, d := range docs {
+		ch <- d
+	}
+	close(ch)
+	return s.Index(context.Background(), ch)
+}
+
 func TestSearchService(t *testing.T) {
 	settings := testSettings()
 	service := NewService(settings)
 	defer service.Close()
 
-	docs := []Document{
+	docs := []domain.Document{
 		{
 			URI:     "acdc://doc1",
 			Name:    "Document One",
@@ -35,7 +46,7 @@ func TestSearchService(t *testing.T) {
 		},
 	}
 
-	if err := service.IndexDocuments(docs); err != nil {
+	if err := indexDocsHelper(service, docs); err != nil {
 		t.Fatalf("IndexDocuments failed: %v", err)
 	}
 
@@ -77,7 +88,7 @@ func TestSearchService_ReIndex(t *testing.T) {
 	service := NewService(settings) // Use in-memory for speed
 	defer service.Close()
 
-	if err := service.IndexDocuments([]Document{{URI: "1", Name: "1"}}); err != nil {
+	if err := indexDocsHelper(service, []domain.Document{{URI: "1", Name: "1"}}); err != nil {
 		t.Fatal(err)
 	}
 	if count, _ := service.DocCount(); count != 1 {
@@ -85,7 +96,7 @@ func TestSearchService_ReIndex(t *testing.T) {
 	}
 
 	// Re-index
-	if err := service.IndexDocuments([]Document{{URI: "2", Name: "2"}}); err != nil {
+	if err := indexDocsHelper(service, []domain.Document{{URI: "2", Name: "2"}}); err != nil {
 		t.Fatal(err)
 	}
 	if count, _ := service.DocCount(); count != 1 {
@@ -118,7 +129,7 @@ func TestSearchService_DiskLifecycle(t *testing.T) {
 	service := NewService(testSettings())
 
 	// Create index (this should trigger temp dir creation)
-	if err := service.IndexDocuments([]Document{{URI: "1", Name: "1"}}); err != nil {
+	if err := indexDocsHelper(service, []domain.Document{{URI: "1", Name: "1"}}); err != nil {
 		t.Fatal(err)
 	}
 
@@ -146,12 +157,12 @@ func TestSearchService_Extended(t *testing.T) {
 	service := NewService(settings)
 	defer service.Close()
 
-	docs := []Document{
+	docs := []domain.Document{
 		{URI: "1", Name: "Alpha", Content: "Content Alpha"},
 		{URI: "2", Name: "Bravo", Content: "Content Bravo"},
 		{URI: "3", Name: "Charlie", Content: "Content Charlie"},
 	}
-	if err := service.IndexDocuments(docs); err != nil {
+	if err := indexDocsHelper(service, docs); err != nil {
 		t.Fatal(err)
 	}
 
@@ -229,7 +240,7 @@ func TestSearch_AccuracyFeatures(t *testing.T) {
 	service := NewService(settings)
 	defer service.Close()
 
-	if err := service.IndexDocuments([]Document{
+	if err := indexDocsHelper(service, []domain.Document{
 		{
 			URI:     "acdc://test",
 			Name:    "Search Service",
@@ -262,7 +273,7 @@ func TestSearch_MissingName(t *testing.T) {
 	settings := testSettings()
 	settings.InMemory = true
 	service := NewService(settings)
-	if err := service.IndexDocuments([]Document{
+	if err := indexDocsHelper(service, []domain.Document{
 		{
 			URI:     "acdc://test",
 			Name:    "", // empty name to trigger fallback
@@ -355,7 +366,7 @@ func TestSearch_KeywordsBoosting(t *testing.T) {
 
 	// CRITICAL: Both documents contain "development" in their content
 	// Only doc2 has "development" as a keyword (which gets 2x boost)
-	docs := []Document{
+	docs := []domain.Document{
 		{
 			URI:      "acdc://doc1",
 			Name:     "Document One",
@@ -370,7 +381,7 @@ func TestSearch_KeywordsBoosting(t *testing.T) {
 		},
 	}
 
-	if err := service.IndexDocuments(docs); err != nil {
+	if err := indexDocsHelper(service, docs); err != nil {
 		t.Fatalf("IndexDocuments failed: %v", err)
 	}
 
@@ -401,7 +412,7 @@ func TestSearch_KeywordsEmpty(t *testing.T) {
 	service := NewService(settings)
 	defer service.Close()
 
-	docs := []Document{
+	docs := []domain.Document{
 		{
 			URI:      "acdc://doc1",
 			Name:     "Alpha Doc",
@@ -416,7 +427,7 @@ func TestSearch_KeywordsEmpty(t *testing.T) {
 		},
 	}
 
-	if err := service.IndexDocuments(docs); err != nil {
+	if err := indexDocsHelper(service, docs); err != nil {
 		t.Fatalf("IndexDocuments failed: %v", err)
 	}
 
@@ -451,7 +462,7 @@ func TestSearch_MultipleKeywords(t *testing.T) {
 	service := NewService(settings)
 	defer service.Close()
 
-	docs := []Document{
+	docs := []domain.Document{
 		{
 			URI:      "acdc://api-guide",
 			Name:     "API Guide",
@@ -460,7 +471,7 @@ func TestSearch_MultipleKeywords(t *testing.T) {
 		},
 	}
 
-	if err := service.IndexDocuments(docs); err != nil {
+	if err := indexDocsHelper(service, docs); err != nil {
 		t.Fatalf("IndexDocuments failed: %v", err)
 	}
 
@@ -484,7 +495,7 @@ func TestSearch_KeywordsOnlyMatch(t *testing.T) {
 	service := NewService(settings)
 	defer service.Close()
 
-	docs := []Document{
+	docs := []domain.Document{
 		{
 			URI:      "acdc://guide",
 			Name:     "Programming Guide",
@@ -493,7 +504,7 @@ func TestSearch_KeywordsOnlyMatch(t *testing.T) {
 		},
 	}
 
-	if err := service.IndexDocuments(docs); err != nil {
+	if err := indexDocsHelper(service, docs); err != nil {
 		t.Fatalf("IndexDocuments failed: %v", err)
 	}
 

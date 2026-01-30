@@ -1,11 +1,13 @@
 package resources
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/sha1n/mcp-acdc-server/internal/content"
+	"github.com/sha1n/mcp-acdc-server/internal/domain"
 )
 
 func TestResourceProvider_Methods(t *testing.T) {
@@ -57,19 +59,29 @@ func TestResourceProvider_Methods(t *testing.T) {
 		}
 	})
 
-	// Test GetAllResourceContents
-	t.Run("GetAllResourceContents", func(t *testing.T) {
-		got := p.GetAllResourceContents()
-		if len(got) != 1 {
-			t.Errorf("GetAllResourceContents returned %d items, want 1", len(got))
+	// Test StreamResources
+	t.Run("StreamResources", func(t *testing.T) {
+		ch := make(chan domain.Document, 10)
+		go func() {
+			defer close(ch)
+			_ = p.StreamResources(context.Background(), ch)
+		}()
+
+		var docs []domain.Document
+		for d := range ch {
+			docs = append(docs, d)
 		}
-		if got[0]["content"] != "Body" {
-			t.Errorf("GetAllResourceContents content = %q, want %q", got[0]["content"], "Body")
+
+		if len(docs) != 1 {
+			t.Errorf("StreamResources returned %d items, want 1", len(docs))
+		}
+		if docs[0].Content != "Body" {
+			t.Errorf("StreamResources content = %q, want %q", docs[0].Content, "Body")
 		}
 	})
 }
 
-func TestResourceProvider_GetAllResourceContents_ErrorHandling(t *testing.T) {
+func TestResourceProvider_StreamResources_ErrorHandling(t *testing.T) {
 	defs := []ResourceDefinition{
 		{
 			URI:      "acdc://valid",
@@ -94,15 +106,25 @@ func TestResourceProvider_GetAllResourceContents_ErrorHandling(t *testing.T) {
 	defs[0].FilePath = validFile
 
 	p := NewResourceProvider(defs)
-	got := p.GetAllResourceContents()
+
+	ch := make(chan domain.Document, 10)
+	go func() {
+		defer close(ch)
+		_ = p.StreamResources(context.Background(), ch)
+	}()
+
+	var got []domain.Document
+	for d := range ch {
+		got = append(got, d)
+	}
 
 	if len(got) != 1 {
-		t.Errorf("GetAllResourceContents returned %d items, want 1 (successful one)", len(got))
+		t.Errorf("StreamResources returned %d items, want 1 (successful one)", len(got))
 		return
 	}
 
-	if got[0]["uri"] != "acdc://valid" {
-		t.Errorf("Expected uri 'acdc://valid', got '%s'", got[0]["uri"])
+	if got[0].URI != "acdc://valid" {
+		t.Errorf("Expected uri 'acdc://valid', got '%s'", got[0].URI)
 	}
 }
 
