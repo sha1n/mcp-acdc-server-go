@@ -17,10 +17,18 @@ type ToolMetadata struct {
 	Description string `yaml:"description"`
 }
 
+// ContentLocation represents a content source location in the config file
+type ContentLocation struct {
+	Name        string `yaml:"name"`
+	Description string `yaml:"description"`
+	Path        string `yaml:"path"`
+}
+
 // McpMetadata represents the root of mcp-metadata.yaml
 type McpMetadata struct {
-	Server ServerMetadata `yaml:"server"`
-	Tools  []ToolMetadata `yaml:"tools"`
+	Server  ServerMetadata    `yaml:"server"`
+	Tools   []ToolMetadata    `yaml:"tools"`
+	Content []ContentLocation `yaml:"content"`
 }
 
 // DefaultToolMetadata provides sensible defaults for known tools
@@ -66,6 +74,32 @@ func (m *McpMetadata) ToolsMap() (map[string]ToolMetadata, error) {
 	return tools, nil
 }
 
+// ValidateContentLocations validates a slice of content locations
+func ValidateContentLocations(locations []ContentLocation) error {
+	if len(locations) == 0 {
+		return fmt.Errorf("at least one content location is required")
+	}
+
+	names := make(map[string]bool)
+	for i, loc := range locations {
+		if loc.Name == "" {
+			return fmt.Errorf("content location at index %d: name is required", i)
+		}
+		if loc.Description == "" {
+			return fmt.Errorf("content location at index %d: description is required", i)
+		}
+		if loc.Path == "" {
+			return fmt.Errorf("content location at index %d: path is required", i)
+		}
+		if names[loc.Name] {
+			return fmt.Errorf("content location at index %d: duplicate name %q", i, loc.Name)
+		}
+		names[loc.Name] = true
+	}
+
+	return nil
+}
+
 // Validate checks for required fields
 func (m *McpMetadata) Validate() error {
 	if m.Server.Name == "" {
@@ -88,6 +122,10 @@ func (m *McpMetadata) Validate() error {
 	}
 
 	if _, err := m.ToolsMap(); err != nil {
+		return err
+	}
+
+	if err := ValidateContentLocations(m.Content); err != nil {
 		return err
 	}
 

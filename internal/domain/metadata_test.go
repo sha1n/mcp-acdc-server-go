@@ -1,6 +1,16 @@
 package domain
 
-import "testing"
+import (
+	"strings"
+	"testing"
+
+	"gopkg.in/yaml.v3"
+)
+
+// validContent returns a valid content location for use in tests
+func validContent() []ContentLocation {
+	return []ContentLocation{{Name: "docs", Description: "Documentation", Path: "/path/to/docs"}}
+}
 
 func TestMcpMetadata_Validate(t *testing.T) {
 	tests := []struct {
@@ -11,62 +21,77 @@ func TestMcpMetadata_Validate(t *testing.T) {
 		{
 			name: "Valid",
 			meta: McpMetadata{
-				Server: ServerMetadata{Name: "s", Version: "1", Instructions: "i"},
-				Tools:  []ToolMetadata{{Name: "t", Description: "d"}},
+				Server:  ServerMetadata{Name: "s", Version: "1", Instructions: "i"},
+				Tools:   []ToolMetadata{{Name: "t", Description: "d"}},
+				Content: validContent(),
 			},
 			wantErr: false,
 		},
 		{
 			name: "Missing Server Name",
 			meta: McpMetadata{
-				Server: ServerMetadata{Name: "", Version: "1", Instructions: "i"},
+				Server:  ServerMetadata{Name: "", Version: "1", Instructions: "i"},
+				Content: validContent(),
 			},
 			wantErr: true,
 		},
 		{
 			name: "Missing Server Version",
 			meta: McpMetadata{
-				Server: ServerMetadata{Name: "s", Version: "", Instructions: "i"},
+				Server:  ServerMetadata{Name: "s", Version: "", Instructions: "i"},
+				Content: validContent(),
 			},
 			wantErr: true,
 		},
 		{
 			name: "Missing Instructions",
 			meta: McpMetadata{
-				Server: ServerMetadata{Name: "s", Version: "1", Instructions: ""},
+				Server:  ServerMetadata{Name: "s", Version: "1", Instructions: ""},
+				Content: validContent(),
 			},
 			wantErr: true,
 		},
 		{
 			name: "Missing Tool Name",
 			meta: McpMetadata{
-				Server: ServerMetadata{Name: "s", Version: "1", Instructions: "i"},
-				Tools:  []ToolMetadata{{Name: "", Description: "d"}},
+				Server:  ServerMetadata{Name: "s", Version: "1", Instructions: "i"},
+				Tools:   []ToolMetadata{{Name: "", Description: "d"}},
+				Content: validContent(),
 			},
 			wantErr: true,
 		},
 		{
 			name: "Missing Tool Description",
 			meta: McpMetadata{
-				Server: ServerMetadata{Name: "s", Version: "1", Instructions: "i"},
-				Tools:  []ToolMetadata{{Name: "t", Description: ""}},
+				Server:  ServerMetadata{Name: "s", Version: "1", Instructions: "i"},
+				Tools:   []ToolMetadata{{Name: "t", Description: ""}},
+				Content: validContent(),
 			},
 			wantErr: true,
 		},
 		{
 			name: "Duplicate Tool Name",
 			meta: McpMetadata{
-				Server: ServerMetadata{Name: "s", Version: "1", Instructions: "i"},
-				Tools:  []ToolMetadata{{Name: "t", Description: "d"}, {Name: "t", Description: "d2"}},
+				Server:  ServerMetadata{Name: "s", Version: "1", Instructions: "i"},
+				Tools:   []ToolMetadata{{Name: "t", Description: "d"}, {Name: "t", Description: "d2"}},
+				Content: validContent(),
 			},
 			wantErr: true,
 		},
 		{
 			name: "Valid with no tools",
 			meta: McpMetadata{
-				Server: ServerMetadata{Name: "s", Version: "1", Instructions: "i"},
+				Server:  ServerMetadata{Name: "s", Version: "1", Instructions: "i"},
+				Content: validContent(),
 			},
 			wantErr: false,
+		},
+		{
+			name: "Missing Content",
+			meta: McpMetadata{
+				Server: ServerMetadata{Name: "s", Version: "1", Instructions: "i"},
+			},
+			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
@@ -163,6 +188,284 @@ func TestToolsMap(t *testing.T) {
 		_, err := meta.ToolsMap()
 		if err == nil {
 			t.Fatal("expected error for duplicate tool name")
+		}
+	})
+}
+
+func TestValidateContentLocations(t *testing.T) {
+	tests := []struct {
+		name        string
+		locations   []ContentLocation
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name: "Valid single location",
+			locations: []ContentLocation{
+				{Name: "docs", Description: "Documentation", Path: "/path/to/docs"},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Valid multiple locations",
+			locations: []ContentLocation{
+				{Name: "docs", Description: "Documentation", Path: "/path/to/docs"},
+				{Name: "internal", Description: "Internal guides", Path: "/path/to/internal"},
+			},
+			wantErr: false,
+		},
+		{
+			name:        "Empty locations",
+			locations:   []ContentLocation{},
+			wantErr:     true,
+			errContains: "at least one content location is required",
+		},
+		{
+			name:        "Nil locations",
+			locations:   nil,
+			wantErr:     true,
+			errContains: "at least one content location is required",
+		},
+		{
+			name: "Missing name",
+			locations: []ContentLocation{
+				{Name: "", Description: "Documentation", Path: "/path/to/docs"},
+			},
+			wantErr:     true,
+			errContains: "name is required",
+		},
+		{
+			name: "Missing description",
+			locations: []ContentLocation{
+				{Name: "docs", Description: "", Path: "/path/to/docs"},
+			},
+			wantErr:     true,
+			errContains: "description is required",
+		},
+		{
+			name: "Missing path",
+			locations: []ContentLocation{
+				{Name: "docs", Description: "Documentation", Path: ""},
+			},
+			wantErr:     true,
+			errContains: "path is required",
+		},
+		{
+			name: "Duplicate names",
+			locations: []ContentLocation{
+				{Name: "docs", Description: "Documentation", Path: "/path/to/docs"},
+				{Name: "docs", Description: "Other docs", Path: "/path/to/other"},
+			},
+			wantErr:     true,
+			errContains: "duplicate name",
+		},
+		{
+			name: "Missing name at second index",
+			locations: []ContentLocation{
+				{Name: "docs", Description: "Documentation", Path: "/path/to/docs"},
+				{Name: "", Description: "Internal", Path: "/path/to/internal"},
+			},
+			wantErr:     true,
+			errContains: "index 1",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateContentLocations(tt.locations)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateContentLocations() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if tt.wantErr && tt.errContains != "" {
+				if !strings.Contains(err.Error(), tt.errContains) {
+					t.Errorf("error %q should contain %q", err.Error(), tt.errContains)
+				}
+			}
+		})
+	}
+}
+
+func TestContentLocation_YAMLParsing(t *testing.T) {
+	t.Run("Parse single content location", func(t *testing.T) {
+		yamlData := `
+server:
+  name: "Test Server"
+  version: "1.0.0"
+  instructions: "Test instructions"
+content:
+  - name: documentation
+    description: "Public documentation"
+    path: /path/to/docs
+`
+		var meta McpMetadata
+		err := yaml.Unmarshal([]byte(yamlData), &meta)
+		if err != nil {
+			t.Fatalf("failed to parse YAML: %v", err)
+		}
+
+		if len(meta.Content) != 1 {
+			t.Fatalf("expected 1 content location, got %d", len(meta.Content))
+		}
+
+		loc := meta.Content[0]
+		if loc.Name != "documentation" {
+			t.Errorf("expected name 'documentation', got %q", loc.Name)
+		}
+		if loc.Description != "Public documentation" {
+			t.Errorf("expected description 'Public documentation', got %q", loc.Description)
+		}
+		if loc.Path != "/path/to/docs" {
+			t.Errorf("expected path '/path/to/docs', got %q", loc.Path)
+		}
+	})
+
+	t.Run("Parse multiple content locations", func(t *testing.T) {
+		yamlData := `
+server:
+  name: "Test Server"
+  version: "1.0.0"
+  instructions: "Test instructions"
+content:
+  - name: documentation
+    description: "Public documentation"
+    path: /path/to/docs
+  - name: internal
+    description: "Internal guides"
+    path: ./relative/path
+`
+		var meta McpMetadata
+		err := yaml.Unmarshal([]byte(yamlData), &meta)
+		if err != nil {
+			t.Fatalf("failed to parse YAML: %v", err)
+		}
+
+		if len(meta.Content) != 2 {
+			t.Fatalf("expected 2 content locations, got %d", len(meta.Content))
+		}
+
+		if meta.Content[0].Name != "documentation" {
+			t.Errorf("expected first location name 'documentation', got %q", meta.Content[0].Name)
+		}
+		if meta.Content[1].Name != "internal" {
+			t.Errorf("expected second location name 'internal', got %q", meta.Content[1].Name)
+		}
+		if meta.Content[1].Path != "./relative/path" {
+			t.Errorf("expected second location path './relative/path', got %q", meta.Content[1].Path)
+		}
+	})
+
+	t.Run("Parse with tools and content", func(t *testing.T) {
+		yamlData := `
+server:
+  name: "Test Server"
+  version: "1.0.0"
+  instructions: "Test instructions"
+tools:
+  - name: search
+    description: "Search tool"
+content:
+  - name: docs
+    description: "Documentation"
+    path: /docs
+`
+		var meta McpMetadata
+		err := yaml.Unmarshal([]byte(yamlData), &meta)
+		if err != nil {
+			t.Fatalf("failed to parse YAML: %v", err)
+		}
+
+		if len(meta.Tools) != 1 {
+			t.Errorf("expected 1 tool, got %d", len(meta.Tools))
+		}
+		if len(meta.Content) != 1 {
+			t.Errorf("expected 1 content location, got %d", len(meta.Content))
+		}
+	})
+
+	t.Run("Parse without content section", func(t *testing.T) {
+		yamlData := `
+server:
+  name: "Test Server"
+  version: "1.0.0"
+  instructions: "Test instructions"
+`
+		var meta McpMetadata
+		err := yaml.Unmarshal([]byte(yamlData), &meta)
+		if err != nil {
+			t.Fatalf("failed to parse YAML: %v", err)
+		}
+
+		if meta.Content != nil {
+			t.Errorf("expected nil content, got %v", meta.Content)
+		}
+	})
+}
+
+func TestMcpMetadata_ValidateWithContent(t *testing.T) {
+	t.Run("Valid metadata with content", func(t *testing.T) {
+		meta := McpMetadata{
+			Server: ServerMetadata{Name: "s", Version: "1", Instructions: "i"},
+			Content: []ContentLocation{
+				{Name: "docs", Description: "Documentation", Path: "/path"},
+			},
+		}
+		if err := meta.Validate(); err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("Valid metadata with multiple content locations", func(t *testing.T) {
+		meta := McpMetadata{
+			Server: ServerMetadata{Name: "s", Version: "1", Instructions: "i"},
+			Content: []ContentLocation{
+				{Name: "docs", Description: "Documentation", Path: "/path1"},
+				{Name: "internal", Description: "Internal", Path: "/path2"},
+			},
+		}
+		if err := meta.Validate(); err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
+	t.Run("Invalid - empty content", func(t *testing.T) {
+		meta := McpMetadata{
+			Server:  ServerMetadata{Name: "s", Version: "1", Instructions: "i"},
+			Content: []ContentLocation{},
+		}
+		err := meta.Validate()
+		if err == nil {
+			t.Error("expected error for empty content")
+		}
+	})
+
+	t.Run("Invalid - content with missing name", func(t *testing.T) {
+		meta := McpMetadata{
+			Server: ServerMetadata{Name: "s", Version: "1", Instructions: "i"},
+			Content: []ContentLocation{
+				{Name: "", Description: "Documentation", Path: "/path"},
+			},
+		}
+		err := meta.Validate()
+		if err == nil {
+			t.Error("expected error for content with missing name")
+		}
+	})
+
+	t.Run("Invalid - content with duplicate names", func(t *testing.T) {
+		meta := McpMetadata{
+			Server: ServerMetadata{Name: "s", Version: "1", Instructions: "i"},
+			Content: []ContentLocation{
+				{Name: "docs", Description: "Documentation", Path: "/path1"},
+				{Name: "docs", Description: "Other docs", Path: "/path2"},
+			},
+		}
+		err := meta.Validate()
+		if err == nil {
+			t.Error("expected error for duplicate content names")
+		}
+		if !strings.Contains(err.Error(), "duplicate name") {
+			t.Errorf("error should mention duplicate name: %v", err)
 		}
 	})
 }
