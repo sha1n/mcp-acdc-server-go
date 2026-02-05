@@ -436,3 +436,234 @@ func TestLegacyAdapter_ACDCCompatibility(t *testing.T) {
 		}
 	})
 }
+
+// TestLegacyAdapter_DiscoverResources_EdgeCases tests additional edge cases
+func TestLegacyAdapter_DiscoverResources_EdgeCases(t *testing.T) {
+	t.Run("resource with invalid frontmatter", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		resourcesDir := filepath.Join(tmpDir, LegacyResourcesDir)
+		if err := os.MkdirAll(resourcesDir, 0755); err != nil {
+			t.Fatalf("failed to create resources dir: %v", err)
+		}
+
+		// Invalid frontmatter (no closing)
+		invalidContent := `---
+name: Test Resource
+description: A test resource
+`
+		file := filepath.Join(resourcesDir, "invalid.md")
+		if err := os.WriteFile(file, []byte(invalidContent), 0644); err != nil {
+			t.Fatalf("failed to write file: %v", err)
+		}
+
+		cp := &content.ContentProvider{}
+		adapter := NewLegacyAdapter()
+		location := Location{Name: "test", BasePath: tmpDir}
+
+		defs, err := adapter.DiscoverResources(location, cp)
+		if err != nil {
+			t.Fatalf("DiscoverResources() error = %v", err)
+		}
+		// Should skip invalid file
+		if len(defs) != 0 {
+			t.Errorf("DiscoverResources() returned %d definitions, want 0", len(defs))
+		}
+	})
+
+	t.Run("resource with missing description", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		resourcesDir := filepath.Join(tmpDir, LegacyResourcesDir)
+		if err := os.MkdirAll(resourcesDir, 0755); err != nil {
+			t.Fatalf("failed to create resources dir: %v", err)
+		}
+
+		missingDescContent := `---
+name: Test Resource
+---
+
+Content.
+`
+		file := filepath.Join(resourcesDir, "missing-desc.md")
+		if err := os.WriteFile(file, []byte(missingDescContent), 0644); err != nil {
+			t.Fatalf("failed to write file: %v", err)
+		}
+
+		cp := &content.ContentProvider{}
+		adapter := NewLegacyAdapter()
+		location := Location{Name: "test", BasePath: tmpDir}
+
+		defs, err := adapter.DiscoverResources(location, cp)
+		if err != nil {
+			t.Fatalf("DiscoverResources() error = %v", err)
+		}
+		// Should skip file with missing description
+		if len(defs) != 0 {
+			t.Errorf("DiscoverResources() returned %d definitions, want 0", len(defs))
+		}
+	})
+
+	t.Run("non-markdown files are ignored", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		resourcesDir := filepath.Join(tmpDir, LegacyResourcesDir)
+		if err := os.MkdirAll(resourcesDir, 0755); err != nil {
+			t.Fatalf("failed to create resources dir: %v", err)
+		}
+
+		// Create non-.md files
+		txtFile := filepath.Join(resourcesDir, "readme.txt")
+		if err := os.WriteFile(txtFile, []byte("Not markdown"), 0644); err != nil {
+			t.Fatalf("failed to write txt file: %v", err)
+		}
+
+		cp := &content.ContentProvider{}
+		adapter := NewLegacyAdapter()
+		location := Location{Name: "test", BasePath: tmpDir}
+
+		defs, err := adapter.DiscoverResources(location, cp)
+		if err != nil {
+			t.Fatalf("DiscoverResources() error = %v", err)
+		}
+
+		// Should ignore non-.md files
+		if len(defs) != 0 {
+			t.Errorf("DiscoverResources() returned %d definitions, want 0", len(defs))
+		}
+	})
+}
+
+// TestLegacyAdapter_DiscoverPrompts_EdgeCases tests additional edge cases
+func TestLegacyAdapter_DiscoverPrompts_EdgeCases(t *testing.T) {
+	t.Run("prompt with invalid frontmatter", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		resourcesDir := filepath.Join(tmpDir, LegacyResourcesDir)
+		if err := os.MkdirAll(resourcesDir, 0755); err != nil {
+			t.Fatalf("failed to create resources dir: %v", err)
+		}
+		promptsDir := filepath.Join(tmpDir, LegacyPromptsDir)
+		if err := os.MkdirAll(promptsDir, 0755); err != nil {
+			t.Fatalf("failed to create prompts dir: %v", err)
+		}
+
+		// Invalid frontmatter
+		invalidContent := `---
+name: test
+`
+		file := filepath.Join(promptsDir, "invalid.md")
+		if err := os.WriteFile(file, []byte(invalidContent), 0644); err != nil {
+			t.Fatalf("failed to write file: %v", err)
+		}
+
+		cp := &content.ContentProvider{}
+		adapter := NewLegacyAdapter()
+		location := Location{Name: "test", BasePath: tmpDir}
+
+		defs, err := adapter.DiscoverPrompts(location, cp)
+		if err != nil {
+			t.Fatalf("DiscoverPrompts() error = %v", err)
+		}
+		// Should skip invalid file
+		if len(defs) != 0 {
+			t.Errorf("DiscoverPrompts() returned %d definitions, want 0", len(defs))
+		}
+	})
+
+	t.Run("prompt with missing name", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		resourcesDir := filepath.Join(tmpDir, LegacyResourcesDir)
+		if err := os.MkdirAll(resourcesDir, 0755); err != nil {
+			t.Fatalf("failed to create resources dir: %v", err)
+		}
+		promptsDir := filepath.Join(tmpDir, LegacyPromptsDir)
+		if err := os.MkdirAll(promptsDir, 0755); err != nil {
+			t.Fatalf("failed to create prompts dir: %v", err)
+		}
+
+		missingNameContent := `---
+description: Missing name field
+---
+
+Template content.
+`
+		file := filepath.Join(promptsDir, "missing-name.md")
+		if err := os.WriteFile(file, []byte(missingNameContent), 0644); err != nil {
+			t.Fatalf("failed to write file: %v", err)
+		}
+
+		cp := &content.ContentProvider{}
+		adapter := NewLegacyAdapter()
+		location := Location{Name: "test", BasePath: tmpDir}
+
+		defs, err := adapter.DiscoverPrompts(location, cp)
+		if err != nil {
+			t.Fatalf("DiscoverPrompts() error = %v", err)
+		}
+		// Should skip file with missing name
+		if len(defs) != 0 {
+			t.Errorf("DiscoverPrompts() returned %d definitions, want 0", len(defs))
+		}
+	})
+
+	t.Run("prompt with invalid template syntax", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		resourcesDir := filepath.Join(tmpDir, LegacyResourcesDir)
+		if err := os.MkdirAll(resourcesDir, 0755); err != nil {
+			t.Fatalf("failed to create resources dir: %v", err)
+		}
+		promptsDir := filepath.Join(tmpDir, LegacyPromptsDir)
+		if err := os.MkdirAll(promptsDir, 0755); err != nil {
+			t.Fatalf("failed to create prompts dir: %v", err)
+		}
+
+		invalidTemplateContent := `---
+name: bad-template
+description: Invalid template
+---
+
+This has {{bad {{ template syntax.
+`
+		file := filepath.Join(promptsDir, "bad-template.md")
+		if err := os.WriteFile(file, []byte(invalidTemplateContent), 0644); err != nil {
+			t.Fatalf("failed to write file: %v", err)
+		}
+
+		cp := &content.ContentProvider{}
+		adapter := NewLegacyAdapter()
+		location := Location{Name: "test", BasePath: tmpDir}
+
+		defs, err := adapter.DiscoverPrompts(location, cp)
+		if err != nil {
+			t.Fatalf("DiscoverPrompts() error = %v", err)
+		}
+		// Should skip file with invalid template
+		if len(defs) != 0 {
+			t.Errorf("DiscoverPrompts() returned %d definitions, want 0", len(defs))
+		}
+	})
+
+	t.Run("prompts path is file not directory", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		resourcesDir := filepath.Join(tmpDir, LegacyResourcesDir)
+		if err := os.MkdirAll(resourcesDir, 0755); err != nil {
+			t.Fatalf("failed to create resources dir: %v", err)
+		}
+
+		// Create prompts as a file instead of directory
+		promptsFile := filepath.Join(tmpDir, LegacyPromptsDir)
+		if err := os.WriteFile(promptsFile, []byte("not a directory"), 0644); err != nil {
+			t.Fatalf("failed to write prompts file: %v", err)
+		}
+
+		cp := &content.ContentProvider{}
+		adapter := NewLegacyAdapter()
+		location := Location{Name: "test", BasePath: tmpDir}
+
+		defs, err := adapter.DiscoverPrompts(location, cp)
+		if err != nil {
+			t.Fatalf("DiscoverPrompts() error = %v", err)
+		}
+		// Should return empty when prompts path is not a directory
+		if len(defs) != 0 {
+			t.Errorf("DiscoverPrompts() returned %d definitions, want 0", len(defs))
+		}
+	})
+}

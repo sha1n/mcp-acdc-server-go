@@ -408,3 +408,331 @@ func TestACDCAdapter_IntegrationScenario(t *testing.T) {
 		}
 	}
 }
+
+// TestACDCAdapter_DiscoverResources_EdgeCases tests additional edge cases
+func TestACDCAdapter_DiscoverResources_EdgeCases(t *testing.T) {
+	t.Run("resource with invalid frontmatter", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		resourcesDir := filepath.Join(tmpDir, ACDCResourcesDir)
+		if err := os.MkdirAll(resourcesDir, 0755); err != nil {
+			t.Fatalf("failed to create resources dir: %v", err)
+		}
+
+		// Create invalid markdown file (no closing frontmatter)
+		invalidContent := `---
+name: Test Resource
+description: A test resource
+`
+		invalidFile := filepath.Join(resourcesDir, "invalid.md")
+		if err := os.WriteFile(invalidFile, []byte(invalidContent), 0644); err != nil {
+			t.Fatalf("failed to write invalid file: %v", err)
+		}
+
+		cp := &content.ContentProvider{}
+		adapter := NewACDCAdapter()
+		location := Location{Name: "test", BasePath: tmpDir}
+
+		defs, err := adapter.DiscoverResources(location, cp)
+		if err != nil {
+			t.Fatalf("DiscoverResources() error = %v", err)
+		}
+		// Should skip invalid file
+		if len(defs) != 0 {
+			t.Errorf("DiscoverResources() returned %d definitions, want 0 (invalid file should be skipped)", len(defs))
+		}
+	})
+
+	t.Run("resource with missing name", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		resourcesDir := filepath.Join(tmpDir, ACDCResourcesDir)
+		if err := os.MkdirAll(resourcesDir, 0755); err != nil {
+			t.Fatalf("failed to create resources dir: %v", err)
+		}
+
+		missingNameContent := `---
+description: A test resource without name
+---
+
+Content here.
+`
+		file := filepath.Join(resourcesDir, "missing-name.md")
+		if err := os.WriteFile(file, []byte(missingNameContent), 0644); err != nil {
+			t.Fatalf("failed to write file: %v", err)
+		}
+
+		cp := &content.ContentProvider{}
+		adapter := NewACDCAdapter()
+		location := Location{Name: "test", BasePath: tmpDir}
+
+		defs, err := adapter.DiscoverResources(location, cp)
+		if err != nil {
+			t.Fatalf("DiscoverResources() error = %v", err)
+		}
+		// Should skip file with missing name
+		if len(defs) != 0 {
+			t.Errorf("DiscoverResources() returned %d definitions, want 0 (missing name)", len(defs))
+		}
+	})
+
+	t.Run("resource with non-string keywords", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		resourcesDir := filepath.Join(tmpDir, ACDCResourcesDir)
+		if err := os.MkdirAll(resourcesDir, 0755); err != nil {
+			t.Fatalf("failed to create resources dir: %v", err)
+		}
+
+		mixedKeywordsContent := `---
+name: Mixed Keywords
+description: Resource with mixed keyword types
+keywords:
+  - valid
+  - 123
+  - another-valid
+---
+
+Content.
+`
+		file := filepath.Join(resourcesDir, "mixed-keywords.md")
+		if err := os.WriteFile(file, []byte(mixedKeywordsContent), 0644); err != nil {
+			t.Fatalf("failed to write file: %v", err)
+		}
+
+		cp := &content.ContentProvider{}
+		adapter := NewACDCAdapter()
+		location := Location{Name: "test", BasePath: tmpDir}
+
+		defs, err := adapter.DiscoverResources(location, cp)
+		if err != nil {
+			t.Fatalf("DiscoverResources() error = %v", err)
+		}
+
+		if len(defs) != 1 {
+			t.Fatalf("DiscoverResources() returned %d definitions, want 1", len(defs))
+		}
+
+		// Should only have string keywords
+		if len(defs[0].Keywords) != 2 {
+			t.Errorf("Keywords length = %d, want 2 (non-string should be filtered)", len(defs[0].Keywords))
+		}
+	})
+
+	t.Run("non-markdown files are ignored", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		resourcesDir := filepath.Join(tmpDir, ACDCResourcesDir)
+		if err := os.MkdirAll(resourcesDir, 0755); err != nil {
+			t.Fatalf("failed to create resources dir: %v", err)
+		}
+
+		// Create non-.md files
+		txtFile := filepath.Join(resourcesDir, "readme.txt")
+		if err := os.WriteFile(txtFile, []byte("Not markdown"), 0644); err != nil {
+			t.Fatalf("failed to write txt file: %v", err)
+		}
+
+		jsonFile := filepath.Join(resourcesDir, "data.json")
+		if err := os.WriteFile(jsonFile, []byte("{}"), 0644); err != nil {
+			t.Fatalf("failed to write json file: %v", err)
+		}
+
+		cp := &content.ContentProvider{}
+		adapter := NewACDCAdapter()
+		location := Location{Name: "test", BasePath: tmpDir}
+
+		defs, err := adapter.DiscoverResources(location, cp)
+		if err != nil {
+			t.Fatalf("DiscoverResources() error = %v", err)
+		}
+
+		// Should ignore non-.md files
+		if len(defs) != 0 {
+			t.Errorf("DiscoverResources() returned %d definitions, want 0 (non-.md files should be ignored)", len(defs))
+		}
+	})
+}
+
+// TestACDCAdapter_DiscoverPrompts_EdgeCases tests additional edge cases
+func TestACDCAdapter_DiscoverPrompts_EdgeCases(t *testing.T) {
+	t.Run("prompt with invalid frontmatter", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		resourcesDir := filepath.Join(tmpDir, ACDCResourcesDir)
+		if err := os.MkdirAll(resourcesDir, 0755); err != nil {
+			t.Fatalf("failed to create resources dir: %v", err)
+		}
+		promptsDir := filepath.Join(tmpDir, ACDCPromptsDir)
+		if err := os.MkdirAll(promptsDir, 0755); err != nil {
+			t.Fatalf("failed to create prompts dir: %v", err)
+		}
+
+		// Invalid frontmatter
+		invalidContent := `---
+name: test
+`
+		file := filepath.Join(promptsDir, "invalid.md")
+		if err := os.WriteFile(file, []byte(invalidContent), 0644); err != nil {
+			t.Fatalf("failed to write file: %v", err)
+		}
+
+		cp := &content.ContentProvider{}
+		adapter := NewACDCAdapter()
+		location := Location{Name: "test", BasePath: tmpDir}
+
+		defs, err := adapter.DiscoverPrompts(location, cp)
+		if err != nil {
+			t.Fatalf("DiscoverPrompts() error = %v", err)
+		}
+		// Should skip invalid file
+		if len(defs) != 0 {
+			t.Errorf("DiscoverPrompts() returned %d definitions, want 0", len(defs))
+		}
+	})
+
+	t.Run("prompt with missing description", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		resourcesDir := filepath.Join(tmpDir, ACDCResourcesDir)
+		if err := os.MkdirAll(resourcesDir, 0755); err != nil {
+			t.Fatalf("failed to create resources dir: %v", err)
+		}
+		promptsDir := filepath.Join(tmpDir, ACDCPromptsDir)
+		if err := os.MkdirAll(promptsDir, 0755); err != nil {
+			t.Fatalf("failed to create prompts dir: %v", err)
+		}
+
+		missingDescContent := `---
+name: test-prompt
+---
+
+Template content.
+`
+		file := filepath.Join(promptsDir, "missing-desc.md")
+		if err := os.WriteFile(file, []byte(missingDescContent), 0644); err != nil {
+			t.Fatalf("failed to write file: %v", err)
+		}
+
+		cp := &content.ContentProvider{}
+		adapter := NewACDCAdapter()
+		location := Location{Name: "test", BasePath: tmpDir}
+
+		defs, err := adapter.DiscoverPrompts(location, cp)
+		if err != nil {
+			t.Fatalf("DiscoverPrompts() error = %v", err)
+		}
+		// Should skip file with missing description
+		if len(defs) != 0 {
+			t.Errorf("DiscoverPrompts() returned %d definitions, want 0", len(defs))
+		}
+	})
+
+	t.Run("prompt with invalid template syntax", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		resourcesDir := filepath.Join(tmpDir, ACDCResourcesDir)
+		if err := os.MkdirAll(resourcesDir, 0755); err != nil {
+			t.Fatalf("failed to create resources dir: %v", err)
+		}
+		promptsDir := filepath.Join(tmpDir, ACDCPromptsDir)
+		if err := os.MkdirAll(promptsDir, 0755); err != nil {
+			t.Fatalf("failed to create prompts dir: %v", err)
+		}
+
+		invalidTemplateContent := `---
+name: bad-template
+description: A prompt with invalid template syntax
+---
+
+This has {{invalid template {{ syntax.
+`
+		file := filepath.Join(promptsDir, "bad-template.md")
+		if err := os.WriteFile(file, []byte(invalidTemplateContent), 0644); err != nil {
+			t.Fatalf("failed to write file: %v", err)
+		}
+
+		cp := &content.ContentProvider{}
+		adapter := NewACDCAdapter()
+		location := Location{Name: "test", BasePath: tmpDir}
+
+		defs, err := adapter.DiscoverPrompts(location, cp)
+		if err != nil {
+			t.Fatalf("DiscoverPrompts() error = %v", err)
+		}
+		// Should skip file with invalid template
+		if len(defs) != 0 {
+			t.Errorf("DiscoverPrompts() returned %d definitions, want 0 (invalid template)", len(defs))
+		}
+	})
+
+	t.Run("prompt with arguments without name", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		resourcesDir := filepath.Join(tmpDir, ACDCResourcesDir)
+		if err := os.MkdirAll(resourcesDir, 0755); err != nil {
+			t.Fatalf("failed to create resources dir: %v", err)
+		}
+		promptsDir := filepath.Join(tmpDir, ACDCPromptsDir)
+		if err := os.MkdirAll(promptsDir, 0755); err != nil {
+			t.Fatalf("failed to create prompts dir: %v", err)
+		}
+
+		argsContent := `---
+name: test-args
+description: Test arguments handling
+arguments:
+  - name: valid_arg
+    description: A valid argument
+    required: true
+  - description: Missing name
+    required: false
+  - name: another_valid
+    description: Another valid arg
+---
+
+Template: {{.valid_arg}} {{.another_valid}}
+`
+		file := filepath.Join(promptsDir, "test-args.md")
+		if err := os.WriteFile(file, []byte(argsContent), 0644); err != nil {
+			t.Fatalf("failed to write file: %v", err)
+		}
+
+		cp := &content.ContentProvider{}
+		adapter := NewACDCAdapter()
+		location := Location{Name: "test", BasePath: tmpDir}
+
+		defs, err := adapter.DiscoverPrompts(location, cp)
+		if err != nil {
+			t.Fatalf("DiscoverPrompts() error = %v", err)
+		}
+
+		if len(defs) != 1 {
+			t.Fatalf("DiscoverPrompts() returned %d definitions, want 1", len(defs))
+		}
+
+		// Should only have arguments with names
+		if len(defs[0].Arguments) != 2 {
+			t.Errorf("Arguments length = %d, want 2 (argument without name should be filtered)", len(defs[0].Arguments))
+		}
+	})
+
+	t.Run("prompts path is file not directory", func(t *testing.T) {
+		tmpDir := t.TempDir()
+		resourcesDir := filepath.Join(tmpDir, ACDCResourcesDir)
+		if err := os.MkdirAll(resourcesDir, 0755); err != nil {
+			t.Fatalf("failed to create resources dir: %v", err)
+		}
+
+		// Create prompts as a file instead of directory
+		promptsFile := filepath.Join(tmpDir, ACDCPromptsDir)
+		if err := os.WriteFile(promptsFile, []byte("not a directory"), 0644); err != nil {
+			t.Fatalf("failed to write prompts file: %v", err)
+		}
+
+		cp := &content.ContentProvider{}
+		adapter := NewACDCAdapter()
+		location := Location{Name: "test", BasePath: tmpDir}
+
+		defs, err := adapter.DiscoverPrompts(location, cp)
+		if err != nil {
+			t.Fatalf("DiscoverPrompts() error = %v", err)
+		}
+		// Should return empty when prompts path is not a directory
+		if len(defs) != 0 {
+			t.Errorf("DiscoverPrompts() returned %d definitions, want 0", len(defs))
+		}
+	})
+}

@@ -221,6 +221,25 @@ func TestAutoDetect(t *testing.T) {
 			t.Error("AutoDetect() on empty registry expected error")
 		}
 	})
+
+	t.Run("skip adapter not in map but in priority", func(t *testing.T) {
+		r := NewRegistry()
+		adapter2 := &mockAdapter{name: "second", canHandle: true}
+
+		// Manually create inconsistency where priority has a name but adapters map doesn't
+		// This tests the edge case where the state is inconsistent
+		r.priority = []string{"nonexistent", "second"}
+		r.adapters["second"] = adapter2
+
+		// Should skip nonexistent (not in map) and find second
+		got, err := r.AutoDetect("/test/path")
+		if err != nil {
+			t.Errorf("AutoDetect() unexpected error: %v", err)
+		}
+		if got.Name() != "second" {
+			t.Errorf("AutoDetect() = %q, want %q", got.Name(), "second")
+		}
+	})
 }
 
 // TestList verifies adapter listing.
