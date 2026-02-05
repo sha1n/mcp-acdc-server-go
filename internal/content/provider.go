@@ -38,14 +38,16 @@ type ContentProvider struct {
 type resolvedLocation struct {
 	name         string
 	basePath     string // Resolved absolute path to the content location
-	resourcePath string // Resolved absolute path to mcp-resources/
-	promptPath   string // Resolved absolute path to mcp-prompts/ (may not exist)
-	hasPrompts   bool   // Whether mcp-prompts/ exists
+	adapterType  string // Explicit adapter type (if specified in config), empty for auto-detect
+	resourcePath string // Resolved absolute path to resources directory (adapter-dependent)
+	promptPath   string // Resolved absolute path to prompts directory (may not exist)
+	hasPrompts   bool   // Whether prompts directory exists
 }
 
 // NewContentProvider creates a new ContentProvider with multiple content locations.
 // Paths in locations can be absolute or relative to configDir.
-// Returns an error if any path doesn't exist or lacks an mcp-resources/ directory.
+// Detects content structure automatically (supports both resources/ and mcp-resources/).
+// Returns an error if any path doesn't exist or if no valid content structure is found.
 func NewContentProvider(locations []domain.ContentLocation, configDir string) (*ContentProvider, error) {
 	if len(locations) == 0 {
 		return nil, fmt.Errorf("at least one content location is required")
@@ -89,19 +91,31 @@ func NewContentProvider(locations []domain.ContentLocation, configDir string) (*
 			return nil, fmt.Errorf("content location %q: path is not a directory: %s", loc.Name, basePath)
 		}
 
-		// Check for mcp-resources/ directory (required)
-		resourcePath := filepath.Join(basePath, "mcp-resources")
-		resourceInfo, err := os.Stat(resourcePath)
-		if err != nil {
-			return nil, fmt.Errorf("content location %q: missing mcp-resources/ directory in %s", loc.Name, basePath)
-		}
-		if !resourceInfo.IsDir() {
-			return nil, fmt.Errorf("content location %q: mcp-resources is not a directory in %s", loc.Name, basePath)
+		// Auto-detect content structure - check for resources/ (new) or mcp-resources/ (legacy)
+		var resourcePath, promptPath string
+		var hasResources, hasPrompts bool
+
+		// Check for new structure first (resources/)
+		newResourcePath := filepath.Join(basePath, "resources")
+		if info, err := os.Stat(newResourcePath); err == nil && info.IsDir() {
+			resourcePath = newResourcePath
+			promptPath = filepath.Join(basePath, "prompts")
+			hasResources = true
+		} else {
+			// Fall back to legacy structure (mcp-resources/)
+			legacyResourcePath := filepath.Join(basePath, "mcp-resources")
+			if info, err := os.Stat(legacyResourcePath); err == nil && info.IsDir() {
+				resourcePath = legacyResourcePath
+				promptPath = filepath.Join(basePath, "mcp-prompts")
+				hasResources = true
+			}
 		}
 
-		// Check for mcp-prompts/ directory (optional)
-		promptPath := filepath.Join(basePath, "mcp-prompts")
-		hasPrompts := false
+		if !hasResources {
+			return nil, fmt.Errorf("content location %q: missing resources/ or mcp-resources/ directory in %s", loc.Name, basePath)
+		}
+
+		// Check if prompts directory exists (optional)
 		if promptInfo, err := os.Stat(promptPath); err == nil && promptInfo.IsDir() {
 			hasPrompts = true
 		}
@@ -109,6 +123,7 @@ func NewContentProvider(locations []domain.ContentLocation, configDir string) (*
 		resolved = append(resolved, resolvedLocation{
 			name:         loc.Name,
 			basePath:     basePath,
+			adapterType:  loc.Type,
 			resourcePath: resourcePath,
 			promptPath:   promptPath,
 			hasPrompts:   hasPrompts,
@@ -244,4 +259,24 @@ func (p *ContentProvider) LoadMarkdownWithFrontmatter(filePath string) (*Markdow
 		Metadata: metadata,
 		Content:  markdownContent,
 	}, nil
+}
+
+// GetBasePath returns the base path for a content location by name
+func (p *ContentProvider) GetBasePath(name string) (string, bool) {
+	for _, loc := range p.locations {
+		if loc.name == name {
+			return loc.basePath, true
+		}
+	}
+	return "", false
+}
+
+// GetAdapterType returns the explicit adapter type for a content location (empty if auto-detect)
+func (p *ContentProvider) GetAdapterType(name string) string {
+	for _, loc := range p.locations {
+		if loc.name == name {
+			return loc.adapterType
+		}
+	}
+	return ""
 }

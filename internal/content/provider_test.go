@@ -9,8 +9,8 @@ import (
 	"github.com/sha1n/mcp-acdc-server/internal/domain"
 )
 
-// Helper to create a content location directory structure
-func createContentLocation(t *testing.T, basePath string, withPrompts bool) {
+// Helper to create a content location with legacy directory structure
+func createLegacyContentLocation(t *testing.T, basePath string, withPrompts bool) {
 	t.Helper()
 	if err := os.MkdirAll(filepath.Join(basePath, "mcp-resources"), 0755); err != nil {
 		t.Fatal(err)
@@ -22,10 +22,28 @@ func createContentLocation(t *testing.T, basePath string, withPrompts bool) {
 	}
 }
 
+// Helper to create a content location with ACDC directory structure
+func createACDCContentLocation(t *testing.T, basePath string, withPrompts bool) {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Join(basePath, "resources"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	if withPrompts {
+		if err := os.MkdirAll(filepath.Join(basePath, "prompts"), 0755); err != nil {
+			t.Fatal(err)
+		}
+	}
+}
+
+// Backward compatibility alias
+func createContentLocation(t *testing.T, basePath string, withPrompts bool) {
+	createLegacyContentLocation(t, basePath, withPrompts)
+}
+
 func TestNewContentProvider_SingleLocation(t *testing.T) {
 	tempDir := t.TempDir()
 	loc1 := filepath.Join(tempDir, "docs")
-	createContentLocation(t, loc1, false)
+	createLegacyContentLocation(t, loc1, false)
 
 	locations := []domain.ContentLocation{
 		{Name: "docs", Description: "Documentation", Path: loc1},
@@ -182,10 +200,10 @@ func TestNewContentProvider_NoResourcesDir(t *testing.T) {
 
 	_, err := NewContentProvider(locations, tempDir)
 	if err == nil {
-		t.Fatal("Expected error for missing mcp-resources/")
+		t.Fatal("Expected error for missing resources directory")
 	}
-	if !strings.Contains(err.Error(), "missing mcp-resources") {
-		t.Errorf("Error should mention 'missing mcp-resources': %v", err)
+	if !strings.Contains(err.Error(), "missing resources/") && !strings.Contains(err.Error(), "mcp-resources/") {
+		t.Errorf("Error should mention missing resources: %v", err)
 	}
 }
 
@@ -298,6 +316,93 @@ func TestNewContentProvider_PromptLocations(t *testing.T) {
 	}
 }
 
+func TestNewContentProvider_ACDCStructure(t *testing.T) {
+	tempDir := t.TempDir()
+	loc1 := filepath.Join(tempDir, "docs")
+	createACDCContentLocation(t, loc1, true)
+
+	locations := []domain.ContentLocation{
+		{Name: "docs", Description: "Documentation", Path: loc1},
+	}
+
+	p, err := NewContentProvider(locations, tempDir)
+	if err != nil {
+		t.Fatalf("NewContentProvider failed: %v", err)
+	}
+
+	resourceLocs := p.ResourceLocations()
+	if len(resourceLocs) != 1 {
+		t.Fatalf("Expected 1 resource location, got %d", len(resourceLocs))
+	}
+	if resourceLocs[0].Name != "docs" {
+		t.Errorf("Expected name 'docs', got '%s'", resourceLocs[0].Name)
+	}
+	// Should use new structure (resources/ not mcp-resources/)
+	if resourceLocs[0].Path != filepath.Join(loc1, "resources") {
+		t.Errorf("Expected new structure (resources/), got: %s", resourceLocs[0].Path)
+	}
+
+	promptLocs := p.PromptLocations()
+	if len(promptLocs) != 1 {
+		t.Fatalf("Expected 1 prompt location, got %d", len(promptLocs))
+	}
+	// Should use new structure (prompts/ not mcp-prompts/)
+	if promptLocs[0].Path != filepath.Join(loc1, "prompts") {
+		t.Errorf("Expected new structure (prompts/), got: %s", promptLocs[0].Path)
+	}
+}
+
+func TestNewContentProvider_MixedStructures(t *testing.T) {
+	tempDir := t.TempDir()
+	loc1 := filepath.Join(tempDir, "docs")
+	loc2 := filepath.Join(tempDir, "legacy")
+	createACDCContentLocation(t, loc1, false)   // New structure
+	createLegacyContentLocation(t, loc2, false) // Legacy structure
+
+	locations := []domain.ContentLocation{
+		{Name: "docs", Description: "Documentation", Path: loc1},
+		{Name: "legacy", Description: "Legacy docs", Path: loc2},
+	}
+
+	p, err := NewContentProvider(locations, tempDir)
+	if err != nil {
+		t.Fatalf("NewContentProvider failed: %v", err)
+	}
+
+	resourceLocs := p.ResourceLocations()
+	if len(resourceLocs) != 2 {
+		t.Fatalf("Expected 2 resource locations, got %d", len(resourceLocs))
+	}
+
+	// Verify first uses new structure
+	found := false
+	for _, loc := range resourceLocs {
+		if loc.Name == "docs" {
+			if loc.Path != filepath.Join(loc1, "resources") {
+				t.Errorf("docs should use new structure (resources/), got: %s", loc.Path)
+			}
+			found = true
+		}
+	}
+	if !found {
+		t.Error("docs location not found")
+	}
+
+	// Verify second uses legacy structure
+	found = false
+	for _, loc := range resourceLocs {
+		if loc.Name == "legacy" {
+			if loc.Path != filepath.Join(loc2, "mcp-resources") {
+				t.Errorf("legacy should use legacy structure (mcp-resources/), got: %s", loc.Path)
+			}
+			found = true
+		}
+	}
+	if !found {
+		t.Error("legacy location not found")
+	}
+}
+
 func TestNewContentProvider_EmptyLocations(t *testing.T) {
 	_, err := NewContentProvider([]domain.ContentLocation{}, "/tmp")
 	if err == nil {
@@ -348,8 +453,8 @@ func TestNewContentProvider_ResourcesIsFile(t *testing.T) {
 	if err == nil {
 		t.Fatal("Expected error when mcp-resources is a file")
 	}
-	if !strings.Contains(err.Error(), "not a directory") {
-		t.Errorf("Error should mention 'not a directory': %v", err)
+	if !strings.Contains(err.Error(), "missing resources/") && !strings.Contains(err.Error(), "not a directory") {
+		t.Errorf("Error should mention missing resources or not a directory: %v", err)
 	}
 }
 
