@@ -138,7 +138,7 @@ func CreateTestContentDir(t testing.TB, opts *ContentDirOptions) string {
 
 	tempDir := t.TempDir()
 	contentDir := filepath.Join(tempDir, "content")
-	resourcesDir := filepath.Join(contentDir, "mcp-resources")
+	resourcesDir := filepath.Join(contentDir, "resources")
 
 	if err := os.MkdirAll(resourcesDir, 0755); err != nil {
 		t.Fatalf("Failed to create resources dir: %v", err)
@@ -167,7 +167,7 @@ func CreateTestContentDir(t testing.TB, opts *ContentDirOptions) string {
 	}
 
 	if opts != nil && opts.Prompts != nil {
-		promptsDir := filepath.Join(contentDir, "mcp-prompts")
+		promptsDir := filepath.Join(contentDir, "prompts")
 		if err := os.MkdirAll(promptsDir, 0755); err != nil {
 			t.Fatalf("Failed to create prompts dir: %v", err)
 		}

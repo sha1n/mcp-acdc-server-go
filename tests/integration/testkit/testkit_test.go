@@ -134,7 +134,7 @@ func TestTestEnv_StopError(t *testing.T) {
 func TestACDCService_Discovery(t *testing.T) {
 	tempDir := t.TempDir()
 	contentDir := filepath.Join(tempDir, "content")
-	resourcesDir := filepath.Join(contentDir, "mcp-resources")
+	resourcesDir := filepath.Join(contentDir, "resources")
 	_ = os.MkdirAll(resourcesDir, 0755)
 
 	metadataContent := `server: { name: test, version: 1.0, instructions: inst }
@@ -280,7 +280,7 @@ func TestCreateTestContentDir_Defaults(t *testing.T) {
 	if _, err := os.Stat(contentDir); os.IsNotExist(err) {
 		t.Error("Content dir not created")
 	}
-	if _, err := os.Stat(filepath.Join(contentDir, "mcp-resources")); os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(contentDir, "resources")); os.IsNotExist(err) {
 		t.Error("Resources dir not created")
 	}
 }
@@ -314,12 +314,12 @@ content:
 	// Verify resource file (content dir is sibling to config file)
 	configDir := filepath.Dir(configPath)
 	contentDir := filepath.Join(configDir, "content")
-	if _, err := os.Stat(filepath.Join(contentDir, "mcp-resources", "test.md")); os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(contentDir, "resources", "test.md")); os.IsNotExist(err) {
 		t.Error("Resource file not created")
 	}
 
 	// Verify prompt file
-	if _, err := os.Stat(filepath.Join(contentDir, "mcp-prompts", "test-prompt.md")); os.IsNotExist(err) {
+	if _, err := os.Stat(filepath.Join(contentDir, "prompts", "test-prompt.md")); os.IsNotExist(err) {
 		t.Error("Prompt file not created")
 	}
 }
@@ -400,7 +400,7 @@ func TestCreateTestContentDir_PromptsMkdirError(t *testing.T) {
 	_ = os.MkdirAll(filepath.Join(baseDir, "content"), 0755)
 
 	// Create a file where a directory is expected to cause MkdirAll failure
-	promptsDir := filepath.Join(baseDir, "content", "mcp-prompts")
+	promptsDir := filepath.Join(baseDir, "content", "prompts")
 	_ = os.WriteFile(promptsDir, []byte("not a directory"), 0644)
 
 	mt := &mockTB{T: t, tempDir: baseDir}
@@ -427,7 +427,7 @@ func TestCreateTestContentDir_PromptsWriteError(t *testing.T) {
 	}
 
 	// Create a directory where a file is expected to cause WriteFile failure
-	promptsDir := filepath.Join(baseDir, "content", "mcp-prompts")
+	promptsDir := filepath.Join(baseDir, "content", "prompts")
 	_ = os.MkdirAll(filepath.Join(promptsDir, "test.md"), 0755)
 
 	CreateTestContentDir(mt, opts)
