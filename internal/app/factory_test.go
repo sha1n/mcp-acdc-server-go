@@ -22,8 +22,8 @@ func createTestConfigFile(t *testing.T, tempDir, contentDir string, metadataCont
 func TestCreateMCPServer_Success(t *testing.T) {
 	tempDir := t.TempDir()
 	contentDir := filepath.Join(tempDir, "content")
-	resourcesDir := filepath.Join(contentDir, "mcp-resources")
-	promptsDir := filepath.Join(contentDir, "mcp-prompts")
+	resourcesDir := filepath.Join(contentDir, "resources")
+	promptsDir := filepath.Join(contentDir, "prompts")
 	_ = os.MkdirAll(resourcesDir, 0755)
 	_ = os.MkdirAll(promptsDir, 0755)
 
@@ -142,7 +142,7 @@ server:
 func TestCreateMCPServer_InvalidResourceIsSkipped(t *testing.T) {
 	tempDir := t.TempDir()
 	contentDir := filepath.Join(tempDir, "content")
-	resourcesDir := filepath.Join(contentDir, "mcp-resources")
+	resourcesDir := filepath.Join(contentDir, "resources")
 	_ = os.MkdirAll(resourcesDir, 0755)
 
 	metadataContent := `
@@ -185,7 +185,7 @@ content:
 func TestCreateMCPServer_ResourceWithKeywords(t *testing.T) {
 	tempDir := t.TempDir()
 	contentDir := filepath.Join(tempDir, "content")
-	resourcesDir := filepath.Join(contentDir, "mcp-resources")
+	resourcesDir := filepath.Join(contentDir, "resources")
 	_ = os.MkdirAll(resourcesDir, 0755)
 
 	metadataContent := `
@@ -223,7 +223,7 @@ content:
 func TestCreateMCPServer_NoResources(t *testing.T) {
 	tempDir := t.TempDir()
 	contentDir := filepath.Join(tempDir, "content")
-	resourcesDir := filepath.Join(contentDir, "mcp-resources")
+	resourcesDir := filepath.Join(contentDir, "resources")
 	_ = os.MkdirAll(resourcesDir, 0755)
 
 	metadataContent := `
@@ -340,7 +340,7 @@ content:
 `
 	configPath := createTestConfigFile(t, tempDir, contentDir, metadataContent)
 
-	// Note: NOT creating mcp-resources/ directory - this should cause content provider init to fail
+	// Note: NOT creating resources/ directory - this should cause content provider init to fail
 
 	settings := &config.Settings{
 		ConfigPath: configPath,
@@ -411,8 +411,8 @@ func TestCreateMCPServer_MultipleContentLocations(t *testing.T) {
 	// Create two content locations
 	content1Dir := filepath.Join(tempDir, "content1")
 	content2Dir := filepath.Join(tempDir, "content2")
-	resources1Dir := filepath.Join(content1Dir, "mcp-resources")
-	resources2Dir := filepath.Join(content2Dir, "mcp-resources")
+	resources1Dir := filepath.Join(content1Dir, "resources")
+	resources2Dir := filepath.Join(content2Dir, "resources")
 	_ = os.MkdirAll(resources1Dir, 0755)
 	_ = os.MkdirAll(resources2Dir, 0755)
 

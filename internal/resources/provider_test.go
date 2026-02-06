@@ -189,7 +189,7 @@ func TestResourceProvider_StreamResources_ContextCancellation_Blocked(t *testing
 func TestDiscoverResources(t *testing.T) {
 	// Setup directory structure
 	tmp := t.TempDir()
-	resDir := filepath.Join(tmp, "mcp-resources")
+	resDir := filepath.Join(tmp, "resources")
 	if err := os.MkdirAll(resDir, 0755); err != nil {
 		t.Fatal(err)
 	}
