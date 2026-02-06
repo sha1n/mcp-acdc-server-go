@@ -159,6 +159,7 @@ content:
   - name: docs
     description: "Public documentation and guides"
     path: ./documentation
+    # type: acdc-mcp  # Optional: force adapter type (acdc-mcp or legacy). Omit for auto-detect.
   - name: internal
     description: "Internal runbooks and procedures"
     path: ./internal
@@ -172,8 +173,19 @@ tools:  # Optional - server provides default descriptions
 
 ### Content Location Structure
 
-Each content location should have the following structure:
+ACDC supports two directory structures for content locations:
 
+**ACDC Native (Preferred):**
+```
+location-path/
+├── resources/           # Markdown resources with YAML frontmatter
+│   └── guides/
+│       └── getting-started.md
+└── prompts/            # Optional: prompt templates
+    └── code-review.md
+```
+
+**Legacy (Backward Compatible):**
 ```
 location-path/
 ├── mcp-resources/       # Markdown resources with YAML frontmatter
@@ -182,6 +194,8 @@ location-path/
 └── mcp-prompts/         # Optional: prompt templates
     └── code-review.md
 ```
+
+The server automatically detects which structure you're using. You can also explicitly specify `type: acdc-mcp` or `type: legacy` in your config file.
 
 ### URI Scheme
 
